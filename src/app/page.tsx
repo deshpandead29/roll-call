@@ -1,6 +1,9 @@
 import Link from "next/link";
 import { AddEmailForm } from "@/components/add-email-form";
+import { NewGroupForm } from "@/components/new-group-form";
 import { createClient } from "@/lib/supabase/server";
+
+type GroupRow = { id: string; name: string; group_members: { count: number }[] };
 
 export default async function Home() {
   const supabase = await createClient();
@@ -20,29 +23,49 @@ export default async function Home() {
     );
   }
 
-  const { data: groups } = await supabase.from("groups").select("id, name").order("created_at");
+  const [{ data: groups }, { data: lastMe }] = await Promise.all([
+    supabase.from("groups").select("id, name, group_members(count)").order("created_at", { ascending: false }),
+    supabase
+      .from("group_members")
+      .select("display_name")
+      .eq("user_id", claims.sub)
+      .order("joined_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+  ]);
 
   return (
     <>
       <section className="hero">
-        <h1>Roll Call</h1>
+        <p className="wordmark">Roll Call</p>
       </section>
 
       <section className="card">
-        <h2>Your groups</h2>
-        {groups?.length ? (
-          <ul className="list">
-            {groups.map((g) => (
-              <li key={g.id}>{g.name}</li>
-            ))}
-          </ul>
-        ) : (
-          <p className="muted">No groups yet. Open a friend&apos;s invite link to join theirs.</p>
-        )}
-        <div className="row">
-          <a className="button ghost" href="/prototype">Try the prototype</a>
+        <div className="top">
+          <h2>Your groups</h2>
+          <a className="link" href="/prototype">See a sample</a>
         </div>
+        {groups?.length ? (
+          <div className="trips">
+            {(groups as GroupRow[]).map((g) => {
+              const n = g.group_members[0]?.count ?? 0;
+              return (
+                <Link key={g.id} className="trip" href={`/groups/${g.id}`}>
+                  <span>
+                    <strong>{g.name}</strong>
+                    <span className="muted small">{n} {n === 1 ? "person" : "people"}</span>
+                  </span>
+                  <span className="hand ink" aria-hidden="true">→</span>
+                </Link>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="empty">No groups yet. Make one below, or open a friend&apos;s invite link.</div>
+        )}
       </section>
+
+      <NewGroupForm defaultName={lastMe?.display_name ?? ""} />
 
       <section className="card t-blue">
         <h2>You</h2>

@@ -29,14 +29,14 @@ export function JoinForm({ code, signedIn, openNames }: { code: string; signedIn
     e.preventDefault();
     setBusy(true);
     setError("");
-    const { error } = await createClient().rpc("join_group", {
+    const { data, error } = await createClient().rpc("join_group", {
       p_code: code,
       p_display_name: claim ? null : name.trim(),
       p_claim_member_id: claim,
     });
     setBusy(false);
     if (!error) {
-      router.replace("/");
+      router.replace(`/groups/${data}`);
       router.refresh();
     } else if (error.code === "23505") {
       setError(claim ? "Someone already joined as that name." : "That name's taken. If it's you, pick it above.");
