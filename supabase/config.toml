@@ -1,0 +1,59 @@
+# Local development with `npx supabase start`. Settings left out use the CLI's
+# defaults. Mirror the auth settings in the hosted project's dashboard; see
+# README.md.
+project_id = "roll-call"
+
+[api]
+port = 54321
+# `private` holds RLS helpers and stays off the API.
+schemas = ["public", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+
+[db]
+port = 54322
+major_version = 17
+
+[studio]
+port = 54323
+
+# Captures outgoing email locally: http://127.0.0.1:54324
+[inbucket]
+port = 54324
+
+[storage]
+file_size_limit = "5MiB"
+
+[auth]
+site_url = "http://localhost:3000"
+additional_redirect_urls = ["http://localhost:3000/**", "http://127.0.0.1:3000/**"]
+jwt_expiry = 3600
+enable_refresh_token_rotation = true
+enable_signup = true
+# "Continue without email". Upgraded later by adding an email.
+enable_anonymous_sign_ins = true
+
+[auth.rate_limit]
+anonymous_users = 30
+email_sent = 30
+
+[auth.email]
+enable_signup = true
+# Anonymous accounts adding an email only confirm the new address.
+double_confirm_changes = false
+enable_confirmations = false
+otp_length = 6
+otp_expiry = 3600
+max_frequency = "30s"
+
+[auth.email.template.magic_link]
+subject = "Your Roll Call sign-in code"
+content_path = "./supabase/templates/sign-in.html"
+
+# New accounts get this one instead of magic_link.
+[auth.email.template.confirmation]
+subject = "Your Roll Call sign-in code"
+content_path = "./supabase/templates/sign-in.html"
+
+[auth.email.template.email_change]
+subject = "Confirm your email for Roll Call"
+content_path = "./supabase/templates/email-change.html"
