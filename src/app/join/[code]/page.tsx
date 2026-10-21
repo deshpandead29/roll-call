@@ -51,7 +51,7 @@ export default async function JoinPage({ params }: { params: Promise<{ code: str
         <section className="card">
           <h2>You&apos;re in</h2>
           <div className="row">
-            <Link className="button" href="/">Open</Link>
+            <Link className="button" href={`/groups/${group.group_id}`}>Open</Link>
           </div>
         </section>
       ) : (
