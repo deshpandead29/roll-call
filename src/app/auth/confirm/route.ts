@@ -1,6 +1,6 @@
 import type { EmailOtpType } from "@supabase/supabase-js";
 import { NextResponse, type NextRequest } from "next/server";
-import { safeNext } from "@/lib/next-path";
+import { safeNext, unwrapNext } from "@/lib/next-path";
 import { createClient } from "@/lib/supabase/server";
 
 const OTP_TYPES: EmailOtpType[] = ["email", "magiclink", "signup", "email_change", "invite"];
@@ -11,7 +11,7 @@ const OTP_TYPES: EmailOtpType[] = ["email", "magiclink", "signup", "email_change
 // `code` is handled too, for links sent with the default templates.
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = request.nextUrl;
-  const next = safeNext(searchParams.get("next"), origin);
+  const next = unwrapNext(safeNext(searchParams.get("next"), origin));
   const tokenHash = searchParams.get("token_hash");
   const type = searchParams.get("type") as EmailOtpType | null;
   const code = searchParams.get("code");

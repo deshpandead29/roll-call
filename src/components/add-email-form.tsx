@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { confirmUrl } from "@/lib/next-path";
 import { createClient } from "@/lib/supabase/client";
 
 // Turns an anonymous session into an email account. The user id stays the
@@ -20,7 +21,7 @@ export function AddEmailForm() {
     setError("");
     const { error } = await createClient().auth.updateUser(
       { email: email.trim() },
-      { emailRedirectTo: window.location.origin + "/" },
+      { emailRedirectTo: confirmUrl(window.location.origin, "/") },
     );
     setBusy(false);
     if (!error) setSent(true);

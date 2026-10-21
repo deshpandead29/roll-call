@@ -28,7 +28,7 @@ Needs Docker. `npx supabase start` applies `supabase/migrations`, uses the auth 
 1. Create a project and run `npx supabase link --project-ref <ref>`, then `npx supabase db push`.
 2. Authentication > Sign In / Providers: turn on anonymous sign-ins. Email stays on.
 3. Authentication > URL Configuration: set the site URL to the deployed origin and add `https://<your-domain>/**` (plus Vercel preview URLs if you use them) to the redirect URLs.
-4. Authentication > Emails: paste `supabase/templates/sign-in.html` into both "Confirm signup" and "Magic link", and `supabase/templates/email-change.html` into "Change email address". The templates send a code as well as a link, because a home-screen app on iPhone doesn't share cookies with Safari, so the link alone would sign people in to the wrong place.
+4. Optional, once custom SMTP is set up (Authentication > Emails > SMTP Settings; new free projects can't edit templates without it): paste `supabase/templates/sign-in.html` into both "Confirm signup" and "Magic link", and `supabase/templates/email-change.html` into "Change email address". The default templates work, but only send a link. Ours add a code, because a home-screen app on iPhone doesn't share cookies with Safari, so the link alone signs people in on the wrong side.
 5. Put the project URL and publishable key in Vercel's environment variables.
 
 ### What's in the database
