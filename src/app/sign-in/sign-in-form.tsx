@@ -55,12 +55,11 @@ export function SignInForm({ next, linkFailed }: { next: string; linkFailed: boo
       <section className="card t-blue">
         <h2>Check your email</h2>
         <p className="muted">
-          Sent to {email.trim()}. Tap the link, or type the code here. If you added Roll Call to your home screen, use the
-          code.
+          Sent to {email.trim()}. Open it on this device and tap the link.
         </p>
         <form className="stack" onSubmit={verifyCode}>
           <label className="field">
-            <span className="label">Code</span>
+            <span className="label">Code, if your email has one</span>
             <input
               inputMode="numeric"
               autoComplete="one-time-code"
