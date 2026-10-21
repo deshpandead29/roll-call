@@ -14,6 +14,7 @@ export default async function Home() {
         <p className="lede">Call roll and everyone shoots the same moment. You see it all the next day.</p>
         <div className="row">
           <Link className="button" href="/sign-in">Sign in</Link>
+          <a className="button ghost" href="/prototype">Try the prototype</a>
         </div>
       </section>
     );
@@ -38,15 +39,19 @@ export default async function Home() {
         ) : (
           <p className="muted">No groups yet. Open a friend&apos;s invite link to join theirs.</p>
         )}
+        <div className="row">
+          <a className="button ghost" href="/prototype">Try the prototype</a>
+        </div>
       </section>
 
       <section className="card t-blue">
         <h2>You</h2>
         {claims.is_anonymous ? (
-          <>
-            <p className="muted">Add your email so you can sign in on another phone. Your groups and photos come with you.</p>
+          <details className="stack">
+            <summary className="link">Add your email</summary>
+            <p className="muted small">So you can sign in on another phone. Your groups and photos come with you.</p>
             <AddEmailForm />
-          </>
+          </details>
         ) : (
           <p className="muted">Signed in as {claims.email}</p>
         )}

@@ -45,3 +45,6 @@ next-env.d.ts
 # supabase local
 supabase/.branches
 supabase/.temp
+
+# copied from prototype/ at build time
+/public/prototype

@@ -25,8 +25,8 @@ export function AddEmailForm() {
     );
     setBusy(false);
     if (!error) setSent(true);
-    else if (error.code === "email_exists") setError("That email already has an account.");
-    else if (error.status === 429) setError("Too many tries. Wait a minute.");
+    else if (error.code === "email_exists") setError("That email already has an account. Sign out and sign in with it instead.");
+    else if (error.status === 429) setError("Too many emails sent. Try again in an hour.");
     else setError("Couldn't send the email. Check the address.");
   }
 
