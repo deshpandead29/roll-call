@@ -1,0 +1,76 @@
+/* Tokens and base styles from prototype/index.html. Keep the two in step. */
+:root{
+  --paper:#FAF7F1; --dot:#DCD4C5; --card:#FFFFFF; --ink:#16151A; --muted:#615C67; --line:#E7E1D5;
+  --pink:#FF4F9A; --blue:#3A57FF; --lime:#C6EE36; --orange:#FF7A1F; --on-blue:#FFFFFF; --die:#FFFFFF; --print:#FBF8F2;
+  --tape-pink:rgba(255,79,154,.5); --tape-blue:rgba(58,87,255,.38); --tape-lime:rgba(198,238,54,.7);
+  --shadow:rgba(40,28,14,.18);
+  --display:var(--font-display),"Arial Narrow",system-ui,sans-serif;
+  --body:var(--font-body),ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+  --hand:var(--font-hand),"Segoe Print","Bradley Hand","Comic Sans MS",cursive;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --paper:#131217; --dot:#2B2931; --card:#1D1B22; --ink:#F3F0EA; --muted:#A8A3AF; --line:#2F2C36;
+  --pink:#FF67AA; --blue:#7B90FF; --lime:#D2F45A; --orange:#FF8D3B; --on-blue:#0F0E13; --die:#F3F0EA; --print:#F4F0E8;
+  --tape-pink:rgba(255,103,170,.55); --tape-blue:rgba(123,144,255,.5); --tape-lime:rgba(210,244,90,.6);
+  --shadow:rgba(0,0,0,.55); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --paper:#131217; --dot:#2B2931; --card:#1D1B22; --ink:#F3F0EA; --muted:#A8A3AF; --line:#2F2C36;
+  --pink:#FF67AA; --blue:#7B90FF; --lime:#D2F45A; --orange:#FF8D3B; --on-blue:#0F0E13; --die:#F3F0EA; --print:#F4F0E8;
+  --tape-pink:rgba(255,103,170,.55); --tape-blue:rgba(123,144,255,.5); --tape-lime:rgba(210,244,90,.6);
+  --shadow:rgba(0,0,0,.55); color-scheme:dark}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background-color:var(--paper);background-image:radial-gradient(var(--dot) 1.1px,transparent 1.5px);background-size:22px 22px;
+  color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.5;min-height:100dvh;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:22px 80px}
+.wrap{max-width:560px;margin:0 auto;display:flex;flex-direction:column;gap:34px}
+h1,h2,h3{font-family:var(--display);margin:0;text-wrap:balance;font-variation-settings:"wdth" 78}
+h1{font-size:clamp(3.1rem,14vw,5.4rem);font-weight:800;line-height:.86;letter-spacing:-.025em}
+h2{font-size:1.9rem;font-weight:800;line-height:.95;letter-spacing:-.015em}
+p{margin:0}
+a{color:inherit}
+.muted{color:var(--muted)}
+.small{font-size:.92rem}
+.label{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.11em;color:var(--muted)}
+.hand{font-family:var(--hand);font-size:1.2rem;line-height:1.25;color:var(--pink)}
+.hand.ink{color:var(--ink)}
+
+/* buttons */
+button,.button{font:inherit;cursor:pointer;border:0;border-radius:999px;padding:13px 20px;font-weight:700;text-decoration:none;
+  background:var(--ink);color:var(--paper);display:inline-flex;align-items:center;justify-content:center;gap:10px;transition:transform .12s}
+button:hover,.button:hover{transform:translateY(-1px) rotate(-.6deg)}
+button:active,.button:active{transform:translateY(1px)}
+button:focus-visible,.button:focus-visible,input:focus-visible,a:focus-visible{outline:3px solid var(--blue);outline-offset:3px}
+button.ghost,.button.ghost{background:transparent;color:var(--ink);box-shadow:inset 0 0 0 2px var(--ink)}
+button.link{background:none;padding:6px 0;color:var(--ink);font-weight:600;text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:4px;text-decoration-color:var(--pink)}
+button.link:hover{transform:none}
+button:disabled{opacity:.45;cursor:not-allowed;transform:none}
+.chip{padding:8px 13px;font-weight:600;font-size:.88rem;background:var(--card);color:var(--ink);box-shadow:inset 0 0 0 1.5px var(--line)}
+.chip:hover{transform:none}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--paper);box-shadow:none}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+
+input{font:inherit;font-size:1.05rem;color:var(--ink);background:var(--paper);border:2px solid var(--line);border-radius:12px;padding:11px 12px;width:100%}
+input:focus{border-color:var(--ink)}
+input::placeholder{color:var(--muted)}
+.field{display:flex;flex-direction:column;gap:6px;min-width:0}
+.row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+.row>.field{flex:1 1 140px}
+.stack{display:flex;flex-direction:column;gap:14px}
+.error{color:var(--pink);font-weight:600}
+
+/* cards held on with washi tape */
+.card{position:relative;background:var(--card);border-radius:16px;padding:26px 18px 20px;display:flex;flex-direction:column;gap:16px;
+  box-shadow:0 1px 0 var(--line),0 22px 40px -28px var(--shadow)}
+.card::before{content:"";position:absolute;top:-12px;left:24px;width:96px;height:26px;transform:rotate(-4deg);
+  background:repeating-linear-gradient(90deg,rgba(255,255,255,.35) 0 3px,transparent 3px 9px),var(--tape-pink);
+  clip-path:polygon(2% 8%,6% 0,10% 9%,90% 4%,95% 0,99% 10%,98% 92%,94% 100%,90% 90%,9% 96%,5% 100%,1% 90%)}
+.card.t-blue::before{background:repeating-linear-gradient(45deg,rgba(255,255,255,.4) 0 3px,transparent 3px 8px),var(--tape-blue);left:auto;right:26px;transform:rotate(3deg)}
+.card.t-lime::before{background:radial-gradient(rgba(255,255,255,.55) 1.4px,transparent 1.8px) 0 0/8px 8px,var(--tape-lime);transform:rotate(-2deg);left:40%}
+
+.hero{display:flex;flex-direction:column;gap:20px}
+.hero .lede{font-size:1.12rem;max-width:40ch;font-weight:500}
+.list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
+.list li{padding:14px 16px;border-radius:14px;box-shadow:inset 0 0 0 1.5px var(--line);font-weight:600}
+
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
