@@ -27,7 +27,7 @@ export function SignInForm({ next, linkFailed }: { next: string; linkFailed: boo
       options: { emailRedirectTo: confirmUrl(window.location.origin, next) },
     });
     setBusy(false);
-    if (error) setError(error.status === 429 ? "Too many tries. Wait a minute." : "Couldn't send the email. Check the address.");
+    if (error) setError(error.status === 429 ? "Too many emails sent. Try again in an hour." : "Couldn't send the email. Check the address.");
     else setSent(true);
   }
 

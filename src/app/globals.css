@@ -44,6 +44,8 @@ button:focus-visible,.button:focus-visible,input:focus-visible,a:focus-visible{o
 button.ghost,.button.ghost{background:transparent;color:var(--ink);box-shadow:inset 0 0 0 2px var(--ink)}
 button.link{background:none;padding:6px 0;color:var(--ink);font-weight:600;text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:4px;text-decoration-color:var(--pink)}
 button.link:hover{transform:none}
+summary.link{cursor:pointer;font-weight:600;text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:4px;text-decoration-color:var(--pink)}
+details.stack[open]>summary{margin-bottom:2px}
 button:disabled{opacity:.45;cursor:not-allowed;transform:none}
 .chip{padding:8px 13px;font-weight:600;font-size:.88rem;background:var(--card);color:var(--ink);box-shadow:inset 0 0 0 1.5px var(--line)}
 .chip:hover{transform:none}
