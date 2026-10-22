@@ -86,7 +86,21 @@ export function RevealView({ data }: { data: Reveal }) {
                     <div key={k} className={`sect${s.key === "calls" ? " moment" : ""}`}>
                       {b.label && (s.key === "calls" || s.key === "recreate" ? <p className="task-sm">{b.label}</p> : <span className="label">{b.label}</span>)}
                       {b.sub && <p className="hand ink small">{b.sub}</p>}
-                      <div className={b.layout}>{b.items.map(item)}</div>
+                      {b.orig ? (
+                        <div className="twoup">
+                          <figure>
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img className="orig" src={b.orig.src} alt={b.orig.alt} />
+                            <figcaption className="hand small">original</figcaption>
+                          </figure>
+                          <figure>
+                            {b.items.map(item)}
+                            <figcaption className="hand small">yours</figcaption>
+                          </figure>
+                        </div>
+                      ) : (
+                        <div className={b.layout}>{b.items.map(item)}</div>
+                      )}
                       {b.foot && <p className={b.layout === "spell" ? "hand small" : "muted small"}>{b.foot}</p>}
                     </div>
                   ))}

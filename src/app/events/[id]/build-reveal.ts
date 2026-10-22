@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { addDays, diffDays, hhmm, type EventType } from "@/lib/events";
-import { groupFrame, HUNT_DAY, hunt, huntType, type MissionEvent, type PhotoKind } from "@/lib/missions";
+import { groupFrame, HUNT_DAY, hunt, huntType, REC, type MissionEvent, type PhotoKind } from "@/lib/missions";
 
 // Shapes the revealed event for the reveal view: Roll Calls side by side with
 // away cards in missed slots, trip days with the hunt wall, challenges, and
@@ -11,7 +11,7 @@ export type Item =
   | { type: "photo"; tile: Tile }
   | { type: "away"; name: string; url: string | null; reason: string }
   | { type: "hole"; glyph: string; who: string };
-export type Block = { label?: string; sub?: string; layout: "board" | "spell"; items: Item[]; foot?: string };
+export type Block = { label?: string; sub?: string; layout: "board" | "spell"; items: Item[]; foot?: string; orig?: { src: string; alt: string } };
 export type Section = { key: string; title: string; aside?: string; tape: "" | "t-blue" | "t-lime"; blocks: Block[] };
 export type Person = { name: string; tiles: Tile[] };
 export type Reveal = { total: number; calls: number; moments: Section[]; people: Person[] };
@@ -27,6 +27,7 @@ type Photo = {
   roll_call_id: string | null;
   late: boolean;
   hunt_tag: string | null;
+  recreate_id: string | null;
   created_at: string;
 };
 type Call = { id: string; caller_member_id: string; called_at: string; reserved: boolean; extra: boolean; recipients: string[] };
@@ -45,7 +46,7 @@ export async function buildReveal(
   const [{ data: photoRows }, { data: callRows }, { data: statusRows }] = await Promise.all([
     supabase
       .from("photos")
-      .select("id, member_id, kind, day, mission, storage_path, roll_call_id, late, hunt_tag, created_at")
+      .select("id, member_id, kind, day, mission, storage_path, roll_call_id, late, hunt_tag, recreate_id, created_at")
       .eq("event_id", ev.id)
       .order("created_at"),
     supabase
@@ -179,7 +180,17 @@ export async function buildReveal(
       key: "recreate",
       title: "Recreations",
       tape: "t-blue",
-      blocks: recs.map((p) => ({ label: p.mission ?? "", sub: `directed by ${name(p.member_id)}`, layout: "board", items: [photo(p)] })),
+      blocks: recs.map((p) => {
+        const r = p.recreate_id ? REC[p.recreate_id] : undefined;
+        return {
+          label: r?.title ?? p.mission ?? "",
+          sub: `directed by ${name(p.member_id)}`,
+          layout: "board",
+          items: [photo(p)],
+          // Paintings go side by side with the public-domain original.
+          orig: r?.img ? { src: `/prototype/art/${r.img}.jpg`, alt: `${r.title}, ${r.source}` } : undefined,
+        };
+      }),
     });
 
   const people: Person[] = members.map((m) => ({

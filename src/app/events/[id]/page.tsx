@@ -6,7 +6,9 @@ import { addDays, diffDays, eventStatus, formatDate, formatWhen, hhmm, PACES, pa
 import {
   CAT_GLYPH,
   CAT_LABEL,
+  director,
   groupFrame,
+  isRecreateDay,
   hash,
   HUNT_DAY,
   hunt,
@@ -20,6 +22,7 @@ import { DeleteEvent } from "./delete-event";
 import { RevealNow } from "./reveal-now";
 import { RevealView } from "./reveal";
 import { Missions, type Mission, type Shot } from "./missions";
+import { Recreate } from "./recreate";
 import { RollCall, type RollData } from "./roll-call";
 
 type EventDetail = {
@@ -108,11 +111,17 @@ export default async function EventPage({
   };
   const i = me ? coming.indexOf(me) : -1;
 
+  // One swap a day on trips, one per event otherwise (stored against the day).
+  const { data: swapRow } = me
+    ? await supabase.from("swaps").select("*").eq("event_id", ev.id).eq("member_id", me.id).eq("day", day).maybeSingle()
+    : { data: null };
+  const sw = Math.min(swapRow?.count ?? 0, 1);
+
   let missions: Mission[] = [];
   let huntDay = "";
   if (me && ev.type === "trip") {
     const h = hunt(mev, di, i);
-    const w = wild(mev, di, i, 0);
+    const w = wild(mev, di, i, sw);
     huntDay = HUNT_DAY[h.type].toLowerCase();
     missions = [
       { kind: "group", label: "Everyone", task: groupFrame(mev, di), icon: { text: "all", bg: "var(--blue)", fg: "var(--on-blue)" } },
@@ -130,10 +139,11 @@ export default async function EventPage({
         task: w.text,
         icon: { text: CAT_GLYPH[w.cat], bg: "var(--pink)" },
         meta: { wild_cat: w.cat },
+        swappable: true,
       },
     ];
   } else if (me) {
-    missions = [{ kind: "night", label: "Your challenge", task: single(mev, i, 0), icon: { text: "!", bg: "var(--orange)" } }];
+    missions = [{ kind: "night", label: "Your challenge", task: single(mev, i, sw), icon: { text: "!", bg: "var(--orange)" }, swappable: true }];
   }
 
   // My shots for this day, shown as negatives.
@@ -289,10 +299,27 @@ export default async function EventPage({
               day={day}
               today={today}
               missions={missions}
-              shots={shots.filter((x) => x.kind !== "roll")}
+              shots={shots.filter((x) => x.kind !== "roll" && x.kind !== "recreate")}
               nextFrame={nextFrame}
               disabled={!live || day > today}
+              swapped={sw > 0}
             />
+            {isRecreateDay(mev, di) && director(mev, di) && (
+              <Recreate
+                mev={mev}
+                di={di}
+                eventId={ev.id}
+                memberId={me.id}
+                myName={me.display_name}
+                day={day}
+                today={today}
+                director={director(mev, di)!}
+                present={coming.length - gone.length}
+                nextFrame={nextFrame}
+                disabled={!live || day > today}
+                shots={shots.filter((x) => x.kind === "recreate")}
+              />
+            )}
           </section>
         </>
       )}

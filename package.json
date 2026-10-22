@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "predev": "rm -rf public/prototype && mkdir -p public && cp -R prototype public/prototype",
     "dev": "next dev",
     "prebuild": "rm -rf public/prototype && mkdir -p public && cp -R prototype public/prototype",
     "build": "next build",
