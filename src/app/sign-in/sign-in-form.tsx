@@ -55,11 +55,11 @@ export function SignInForm({ next, linkFailed }: { next: string; linkFailed: boo
       <section className="card t-blue">
         <h2>Check your email</h2>
         <p className="muted">
-          Sent to {email.trim()}. Open it on this device and tap the link.
+          Sent to {email.trim()}. Type the code here, or tap the link in the email on this device.
         </p>
         <form className="stack" onSubmit={verifyCode}>
           <label className="field">
-            <span className="label">Code, if your email has one</span>
+            <span className="label">Code</span>
             <input
               inputMode="numeric"
               autoComplete="one-time-code"
