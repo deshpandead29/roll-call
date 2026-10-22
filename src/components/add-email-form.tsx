@@ -43,9 +43,9 @@ export function AddEmailForm() {
   if (sent) {
     return (
       <form className="stack" onSubmit={verify}>
-        <p className="muted small">Sent to {email.trim()}. Open it on this device and tap the link.</p>
+        <p className="muted small">Sent to {email.trim()}. Type the code, or tap the link in the email.</p>
         <label className="field">
-          <span className="label">Code, if your email has one</span>
+          <span className="label">Code</span>
           <input
             inputMode="numeric"
             autoComplete="one-time-code"

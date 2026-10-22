@@ -18,7 +18,7 @@ export default async function SignInPage({
     <>
       <section className="hero">
         <h1>Sign in</h1>
-        <p className="lede muted">We&apos;ll email you a sign-in link. No password.</p>
+        <p className="lede muted">We&apos;ll email you a code. No password.</p>
       </section>
       <SignInForm next={next} linkFailed={params.error === "link"} />
     </>
