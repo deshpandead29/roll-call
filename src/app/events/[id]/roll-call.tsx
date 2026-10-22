@@ -110,20 +110,31 @@ export function RollCall({
       t = setTimeout(() => router.refresh(), 250);
     };
     const filter = `event_id=eq.${eventId}`;
-    const channel = supabase
-      .channel(`roll:${eventId}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "roll_calls", filter }, refresh)
-      .on("postgres_changes", { event: "*", schema: "public", table: "extra_asks", filter }, refresh)
-      .on("postgres_changes", { event: "*", schema: "public", table: "member_status", filter }, refresh)
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "extra_backs" }, refresh)
-      .subscribe();
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    let closed = false;
+    // Hand Realtime the session before joining. On a fresh page load the
+    // client hasn't read it yet, and a join without it counts as signed out,
+    // which can't read these tables: filters fail ("invalid column") and
+    // changes arrive empty ("401 Unauthorized").
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (closed) return;
+      if (session) supabase.realtime.setAuth(session.access_token);
+      channel = supabase
+        .channel(`roll:${eventId}`)
+        .on("postgres_changes", { event: "*", schema: "public", table: "roll_calls", filter }, refresh)
+        .on("postgres_changes", { event: "*", schema: "public", table: "extra_asks", filter }, refresh)
+        .on("postgres_changes", { event: "*", schema: "public", table: "member_status", filter }, refresh)
+        .on("postgres_changes", { event: "INSERT", schema: "public", table: "extra_backs" }, refresh)
+        .subscribe();
+    });
     const tick = setInterval(() => setNow(clock()), 1000);
     const slow = setInterval(() => router.refresh(), 30_000);
     return () => {
       clearTimeout(t);
       clearInterval(tick);
       clearInterval(slow);
-      supabase.removeChannel(channel);
+      closed = true;
+      if (channel) supabase.removeChannel(channel);
     };
   }, [eventId, router]);
 
