@@ -29,7 +29,10 @@ export default async function JoinPage({ params }: { params: Promise<{ code: str
 
   const signedIn = !!claimsData?.claims;
   let alreadyIn = false;
+  let myName = "";
   if (signedIn) {
+    const { data: profile } = await supabase.from("profiles").select("display_name").eq("user_id", claimsData!.claims.sub).maybeSingle();
+    myName = profile?.display_name ?? "";
     const { count } = await supabase
       .from("group_members")
       .select("id", { count: "exact", head: true })
@@ -55,7 +58,7 @@ export default async function JoinPage({ params }: { params: Promise<{ code: str
           </div>
         </section>
       ) : (
-        <JoinForm code={code} signedIn={signedIn} openNames={group.open_names} />
+        <JoinForm code={code} signedIn={signedIn} openNames={group.open_names} defaultName={myName} />
       )}
     </>
   );

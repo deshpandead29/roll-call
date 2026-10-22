@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { AlertsSetup } from "@/components/alerts-setup";
 import { HeroCollage } from "@/components/hero-collage";
+import { ProfileLink } from "@/components/profile-link";
 import { createClient } from "@/lib/supabase/server";
 
 type GroupRow = { id: string; name: string; group_members: { count: number }[] };
@@ -35,7 +36,7 @@ export default async function Home() {
     <>
       <div className="top">
         <h1 className="wordmark">Roll Call</h1>
-        <Link className="link" href="/me">You</Link>
+        <ProfileLink userId={claims.sub} />
       </div>
 
       <AlertsSetup isAnonymous={!!claims.is_anonymous} />

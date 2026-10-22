@@ -4,7 +4,6 @@ import { notFound, redirect } from "next/navigation";
 import { AwayCard } from "@/components/away-card";
 import { createClient } from "@/lib/supabase/server";
 import { AddNamesForm } from "../add-names-form";
-import { AwayUpload } from "../away-upload";
 import { InviteLink } from "../invite-link";
 import { LeaveGroup } from "../leave-group";
 
@@ -59,7 +58,7 @@ export default async function PeoplePage({ params }: { params: Promise<{ id: str
 
       <section className="card" id="away">
         <h2>Away cards</h2>
-        <p className="muted small">Your selfie fills your slot when you miss a Roll Call. Greyscale, marked away.</p>
+        <p className="muted small">Each person&apos;s selfie fills their slot when they miss a Roll Call.</p>
         <div className="aways">
           {people.map((m) => (
             <AwayCard
@@ -70,7 +69,10 @@ export default async function PeoplePage({ params }: { params: Promise<{ id: str
             />
           ))}
         </div>
-        <AwayUpload groupId={group.id} memberId={me.id} oldPath={me.away_card_path} />
+        <div className="row">
+          <Link className="button ghost" href="/me#away">{me.away_card_path ? "Change yours" : "Add yours"}</Link>
+          <span className="muted small">in your profile</span>
+        </div>
       </section>
 
       <LeaveGroup groupId={group.id} groupName={group.name} last={people.filter((m) => m.user_id).length === 1} />

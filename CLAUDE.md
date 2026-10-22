@@ -55,7 +55,7 @@ Closest competitors: POV and Lense (shared event cameras with delayed reveal), B
 
 ### Away cards
 
-Made once per group: a selfie, shown greyscale with pink stripes and an "away" pill. In the reveal it fills a missed slot with a reason: "snoozed", "home by 22:10" or "missed it". Away cards never count as answers.
+Made once, in your profile, and used in every group you're in: a selfie, shown greyscale with pink stripes and an "away" pill. In the reveal it fills a missed slot with a reason: "snoozed", "home by 22:10" or "missed it". Away cards never count as answers.
 
 ## Challenges
 
@@ -106,7 +106,7 @@ Research in `docs/research.md` (layout and navigation). Rules that keep pages li
 - Each page has one job and one primary button. Home: your groups (New group). Group: its events (New event). Live event: Call roll and your challenges.
 - Forms get their own page: `/groups/new`, `/groups/[id]/events/new`, `/me`. Never stack a create form under a list.
 - Setup shows up only while it's needed: the invite card on a group until someone else joins, the away-card nudge until you've added one, the alerts prompt until alerts are on (full help on home, a one-line prompt on events).
-- Secondary information folds: "So far" (shot tally, calls, who's snoozed or home) and "Event details" (who's coming, pace, reveal time, host, Reveal now, Delete). People, invites and away cards live on `/groups/[id]/people`.
+- Secondary information folds: "So far" (shot tally, calls, who's snoozed or home) and "Event details" (who's coming, pace, reveal time, host, Reveal now, Delete). People and invites live on `/groups/[id]/people`. Your name, away card, alerts and account live on your profile, `/me`, reached from the round photo on home.
 - No more than two levels: a page plus one fold or one linked page.
 
 ## Build plan

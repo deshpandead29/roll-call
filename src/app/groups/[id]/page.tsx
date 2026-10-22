@@ -114,9 +114,9 @@ export default async function GroupPage({ params }: { params: Promise<{ id: stri
       {!me.away_card_path && (
         <section className="card t-lime">
           <h2>Add your away card</h2>
-          <p className="muted small">A selfie that fills your slot if you miss a Roll Call.</p>
+          <p className="muted small">A selfie that fills your slot if you miss a Roll Call. One for all your groups, in your profile.</p>
           <div className="row">
-            <Link className="button ghost" href={`/groups/${group.id}/people#away`}>Add yours</Link>
+            <Link className="button ghost" href="/me#away">Add yours</Link>
           </div>
         </section>
       )}
