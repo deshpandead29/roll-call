@@ -222,3 +222,27 @@ export async function toJpeg(c: HTMLCanvasElement): Promise<Blob> {
   }
   return blob;
 }
+
+// Away card: a square greyscale crop, as in the prototype's awayImage().
+// Stripes and the "away" pill are drawn by CSS, so the stored image stays plain.
+export function awayCanvas(img: HTMLImageElement): HTMLCanvasElement {
+  const S = 360;
+  const c = document.createElement("canvas");
+  c.width = S;
+  c.height = S;
+  const x = c.getContext("2d", { willReadFrequently: true })!;
+  const sw = img.naturalWidth;
+  const sh = img.naturalHeight;
+  const s = Math.max(S / sw, S / sh);
+  x.filter = "grayscale(1) contrast(1.15)";
+  x.drawImage(img, (S - sw * s) / 2, (S - sh * s) / 2, sw * s, sh * s);
+  x.filter = "none";
+  const d = x.getImageData(0, 0, S, S);
+  const p = d.data;
+  for (let i = 0; i < p.length; i += 4) {
+    const L = 0.3 * p[i] + 0.59 * p[i + 1] + 0.11 * p[i + 2];
+    p[i] = p[i + 1] = p[i + 2] = L;
+  }
+  x.putImageData(d, 0, 0);
+  return c;
+}

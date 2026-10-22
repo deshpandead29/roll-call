@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { AlertsSetup } from "@/components/alerts-setup";
+import { HeroCollage } from "@/components/hero-collage";
 import { createClient } from "@/lib/supabase/server";
 
 type GroupRow = { id: string; name: string; group_members: { count: number }[] };
@@ -12,11 +13,14 @@ export default async function Home() {
   if (!claims) {
     return (
       <section className="hero">
+        <p className="wordmark">Roll Call</p>
         <h1>Every angle, all at once.</h1>
         <p className="lede">Call roll and everyone shoots the same moment. You see it all the next day.</p>
+        <HeroCollage />
         <div className="row">
-          <Link className="button" href="/sign-in">Sign in</Link>
-          <a className="button ghost" href="/prototype">Try the prototype</a>
+          <Link className="button shutter" href="/sign-in">Get started</Link>
+          <Link className="button ghost" href="/try">Try the look</Link>
+          <Link className="link" href="/sample">See a sample</Link>
         </div>
       </section>
     );
@@ -30,7 +34,7 @@ export default async function Home() {
   return (
     <>
       <div className="top">
-        <p className="wordmark">Roll Call</p>
+        <h1 className="wordmark">Roll Call</h1>
         <Link className="link" href="/me">You</Link>
       </div>
 
@@ -58,7 +62,7 @@ export default async function Home() {
         )}
         <div className="row">
           <Link className="button shutter" href="/groups/new">New group</Link>
-          <a className="link" href="/prototype">See a sample</a>
+          <Link className="link" href="/sample">See a sample</Link>
         </div>
       </section>
     </>
