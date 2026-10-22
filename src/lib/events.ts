@@ -1,5 +1,7 @@
 // Event rules from the prototype (TYPES, PACES, paceSummary, status).
 
+import { hash } from "@/lib/missions";
+
 export type EventType = "night" | "birthday" | "bigday" | "trip";
 export type Pace = "chill" | "normal" | "chaos";
 
@@ -64,13 +66,4 @@ export function eventStatus(
 }
 
 // Same tilt as the prototype, so cards land at the same angle.
-function hash(str: string): number {
-  let h = 1779033703 ^ str.length;
-  for (let i = 0; i < str.length; i++) {
-    h = Math.imul(h ^ str.charCodeAt(i), 3432918353);
-    h = (h << 13) | (h >>> 19);
-  }
-  return h >>> 0;
-}
-
 export const tilt = (id: string, amp = 3) => (((hash(id) % 1000) / 1000) * 2 - 1) * amp;

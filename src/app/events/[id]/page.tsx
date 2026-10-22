@@ -1,8 +1,21 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { eventStatus, formatWhen, PACES, paceSummary, TYPES, type EventType, type Pace } from "@/lib/events";
+import { Tally } from "@/components/tally";
+import { addDays, diffDays, eventStatus, formatWhen, PACES, paceSummary, todayIn, TYPES, type EventType, type Pace } from "@/lib/events";
+import {
+  CAT_GLYPH,
+  CAT_LABEL,
+  groupFrame,
+  hash,
+  HUNT_DAY,
+  hunt,
+  single,
+  wild,
+  type MissionEvent,
+} from "@/lib/missions";
 import { createClient } from "@/lib/supabase/server";
 import { DeleteEvent } from "./delete-event";
+import { Missions, type Mission, type Shot } from "./missions";
 
 type EventDetail = {
   id: string;
@@ -19,10 +32,20 @@ type EventDetail = {
   revealed: boolean;
 };
 
-type Coming = { member_id: string; group_members: { display_name: string; user_id: string | null } };
+type Coming = {
+  member_id: string;
+  group_members: { display_name: string; user_id: string | null; created_at: string };
+};
 
-export default async function EventPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function EventPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ day?: string }>;
+}) {
   const { id } = await params;
+  const { day: dayParam } = await searchParams;
   const supabase = await createClient();
   const { data: auth } = await supabase.auth.getClaims();
   if (!auth?.claims) redirect(`/sign-in?next=${encodeURIComponent(`/events/${id}`)}`);
@@ -31,22 +54,27 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
   if (!row) notFound();
   const ev = row as EventDetail;
 
-  const [{ data: group }, { data: comingRows }, { data: host }] = await Promise.all([
+  const [{ data: group }, { data: comingRows }, { data: host }, { data: counts }, { data: photoRows }] = await Promise.all([
     supabase.from("groups").select("name").eq("id", ev.group_id).single(),
-    supabase.from("event_members").select("member_id, group_members(display_name, user_id)").eq("event_id", id),
+    supabase.from("event_members").select("member_id, group_members(display_name, user_id, created_at)").eq("event_id", id),
     ev.host_member_id
       ? supabase.from("group_members").select("display_name, user_id").eq("id", ev.host_member_id).maybeSingle()
       : Promise.resolve({ data: null }),
+    supabase.rpc("event_shot_counts", { p_event_id: id }),
+    // Before the reveal, RLS returns only your own.
+    supabase.from("photos").select("id, kind, day, frame, storage_path, member_id").eq("event_id", id).order("created_at"),
   ]);
 
+  // Join order, the same on every device, so missions match.
   const coming = ((comingRows ?? []) as unknown as Coming[])
     .map((c) => ({ id: c.member_id, ...c.group_members }))
-    .sort((a, b) => a.display_name.localeCompare(b.display_name));
+    .sort((a, b) => a.created_at.localeCompare(b.created_at) || a.id.localeCompare(b.id));
+  const me = coming.find((m) => m.user_id === auth.claims.sub);
   const status = eventStatus(ev, ev.timezone);
   const T = TYPES[ev.type];
   const honoree = coming.find((m) => m.id === ev.honoree_member_id);
   const isHost = host?.user_id === auth.claims.sub;
-  const onIt = coming.some((m) => m.user_id === auth.claims.sub);
+  const today = todayIn(ev.timezone);
   const reveal = new Date(ev.reveal_at).toLocaleString("en-GB", {
     timeZone: ev.timezone,
     weekday: "short",
@@ -55,6 +83,74 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
     hour: "2-digit",
     minute: "2-digit",
   });
+
+  // Trips have a day each; everything else is one day.
+  const days =
+    ev.type === "trip"
+      ? Array.from({ length: diffDays(ev.start_date, ev.end_date) + 1 }, (_, k) => addDays(ev.start_date, k))
+      : [ev.start_date];
+  const fallback = today < days[0] ? days[0] : today > days[days.length - 1] ? days[days.length - 1] : today;
+  const day = dayParam && days.includes(dayParam) ? dayParam : fallback;
+  const di = days.indexOf(day);
+
+  const mev: MissionEvent = {
+    id: ev.id,
+    type: ev.type,
+    name: ev.name,
+    members: coming.map((m) => m.display_name),
+    honoree: honoree?.display_name ?? null,
+  };
+  const i = me ? coming.indexOf(me) : -1;
+
+  let missions: Mission[] = [];
+  let huntDay = "";
+  if (me && ev.type === "trip") {
+    const h = hunt(mev, di, i);
+    const w = wild(mev, di, i, 0);
+    huntDay = HUNT_DAY[h.type].toLowerCase();
+    missions = [
+      { kind: "group", label: "Everyone", task: groupFrame(mev, di), icon: { text: "all", bg: "var(--blue)", fg: "var(--on-blue)" } },
+      {
+        kind: "hunt",
+        label: "Hunt",
+        task: h.text,
+        sub: h.sub,
+        icon: h.type === "colour" ? { text: "", bg: h.bg! } : { text: h.glyph, bg: "var(--orange)" },
+        meta: { hunt_type: h.type, hunt_tag: h.tag, hunt_order: h.order },
+      },
+      {
+        kind: "wild",
+        label: `Wildcard · ${CAT_LABEL[w.cat]}`,
+        task: w.text,
+        icon: { text: CAT_GLYPH[w.cat], bg: "var(--pink)" },
+        meta: { wild_cat: w.cat },
+      },
+    ];
+  } else if (me) {
+    missions = [{ kind: "night", label: "Your challenge", task: single(mev, i, 0), icon: { text: "!", bg: "var(--orange)" } }];
+  }
+
+  // My shots for this day, shown as negatives.
+  const mine = (photoRows ?? []).filter((p) => p.member_id === me?.id && p.day === day);
+  const urls = new Map<string, string>();
+  if (mine.length) {
+    const { data } = await supabase.storage.from("photos").createSignedUrls(
+      mine.map((p) => p.storage_path),
+      60 * 60,
+    );
+    data?.forEach((d) => d.path && d.signedUrl && urls.set(d.path, d.signedUrl));
+  }
+  const shots: Shot[] = mine.map((p) => ({
+    id: p.id,
+    kind: p.kind,
+    frame: p.frame,
+    storage_path: p.storage_path,
+    url: urls.get(p.storage_path) ?? null,
+  }));
+  const allMine = (photoRows ?? []).filter((p) => p.member_id === me?.id);
+
+  const countOf = new Map(((counts ?? []) as { member_id: string; shots: number }[]).map((c) => [c.member_id, c.shots]));
+  const total = coming.reduce((n, m) => n + (countOf.get(m.id) ?? 0), 0);
 
   return (
     <>
@@ -72,14 +168,74 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
         </p>
       </section>
 
-      <section className="card">
-        <h2>Who&apos;s coming</h2>
-        <div className="chips">
-          {coming.map((m) => (
-            <span key={m.id} className="chip">{m.display_name}</span>
-          ))}
+      {ev.revealed ? (
+        <section className="card">
+          <h2>Revealed</h2>
+          <p className="muted">Shooting has ended. The reveal screen isn&apos;t built yet.</p>
+        </section>
+      ) : me ? (
+        <section className="card">
+          <h2>Your challenge{ev.type === "trip" ? "s" : ""}</h2>
+          {ev.type === "trip" && (
+            <>
+              <div className="days" role="group" aria-label="Day">
+                {days.map((d, k) => (
+                  <Link key={d} className="chip" aria-current={d === day ? "page" : undefined} href={`/events/${ev.id}?day=${d}`} scroll={false}>
+                    Day {k + 1}
+                  </Link>
+                ))}
+              </div>
+              <p className="hand">
+                {huntDay}
+                {day === today ? " · today" : ""}
+              </p>
+            </>
+          )}
+          <Missions
+            eventId={ev.id}
+            memberId={me.id}
+            myName={me.display_name}
+            day={day}
+            today={today}
+            missions={missions}
+            shots={shots}
+            nextFrame={Math.max(0, ...allMine.map((p) => p.frame ?? 0)) + 1}
+            disabled={ev.revealed}
+          />
+        </section>
+      ) : (
+        <section className="card">
+          <h2>Not on this one</h2>
+          <p className="muted">You&apos;ll see the reveal.</p>
+        </section>
+      )}
+
+      <section className="card t-lime">
+        <div className="top">
+          <h2>Shots</h2>
+          <span className="big">{total}</span>
         </div>
-        {!onIt && <p className="muted small">You&apos;re not on this one. You&apos;ll see the reveal.</p>}
+        <p className="muted small">Who&apos;s shooting, not what.</p>
+        {coming.map((m) => {
+          const n = countOf.get(m.id) ?? 0;
+          return (
+            <div key={m.id} className="who">
+              <span>
+                {m.display_name}
+                {m.id === me?.id ? " (you)" : ""}
+              </span>
+              <Tally n={Math.min(n, 60)} seed={hash(m.display_name)} />
+              <span className="num">{n}</span>
+            </div>
+          );
+        })}
+      </section>
+
+      <section className="card t-blue">
+        <div className="top">
+          <h2>Reveal</h2>
+          <span className="hand ink">{reveal}</span>
+        </div>
         <dl className="facts">
           {T.honoree && honoree && (
             <>
@@ -88,9 +244,9 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
             </>
           )}
           <dt className="label">Pace</dt>
-          <dd>{PACES[ev.pace]} · {paceSummary(ev.type, ev.pace)}</dd>
-          <dt className="label">Reveal</dt>
-          <dd>{reveal}</dd>
+          <dd>
+            {PACES[ev.pace]} · {paceSummary(ev.type, ev.pace)}
+          </dd>
           {host && (
             <>
               <dt className="label">Host</dt>
@@ -98,14 +254,6 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
             </>
           )}
         </dl>
-      </section>
-
-      <section className="card t-blue">
-        <h2>Shooting</h2>
-        <p className="muted">The camera, Roll Calls and challenges aren&apos;t built yet. Try them in the prototype for now.</p>
-        <div className="row">
-          <a className="button ghost" href="/prototype">Try the prototype</a>
-        </div>
       </section>
 
       {isHost && <DeleteEvent eventId={ev.id} groupId={ev.group_id} />}
