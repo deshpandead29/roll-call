@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { AlertsSetup } from "@/components/alerts-setup";
 import { Tally } from "@/components/tally";
 import { addDays, diffDays, eventStatus, formatWhen, PACES, paceSummary, todayIn, TYPES, type EventType, type Pace } from "@/lib/events";
 import {
@@ -178,6 +179,7 @@ export default async function EventPage({
         </section>
       ) : me ? (
         <>
+        <AlertsSetup isAnonymous={!!auth.claims.is_anonymous} />
         {roll && (
           <RollCall
             eventId={ev.id}

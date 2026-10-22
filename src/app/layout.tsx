@@ -5,6 +5,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Roll Call",
   description: "Call roll and everyone shoots the same moment. You see it all the next day.",
+  appleWebApp: { capable: true, title: "Roll Call", statusBarStyle: "default" },
 };
 
 export const viewport: Viewport = {
