@@ -156,3 +156,53 @@ export function single(ev: MissionEvent, i: number, sw: number): string {
   const b = ev.honoree || (ev.type === "birthday" ? "the birthday person" : "the couple");
   return pool[(i + sw * 5) % pool.length].replace(/\{b\}/g, b);
 }
+
+// Recreate: a seeded director gets a painting, film scene or meme sized to
+// how many people they can round up. Paintings are public domain and shown
+// (art in prototype/art, served at /prototype/art); films, TV, memes and
+// album covers are words only, for copyright.
+export type Recreation = {
+  id: string;
+  min: number;
+  max: number;
+  format: string;
+  title: string;
+  source: string;
+  year: string;
+  img: string | null;
+  prompt: string;
+};
+
+export const RECREATE: Recreation[] = [
+ {id:"pearl",min:1,max:1,format:"Painting",title:"Girl with a Pearl Earring",source:"Vermeer",year:"c. 1665",img:"pearl",prompt:"Over the shoulder. Lips parted."},
+ {id:"scream",min:1,max:1,format:"Painting",title:"The Scream",source:"Munch",year:"1893",img:"scream",prompt:"Hands on cheeks. Mouth open."},
+ {id:"whistler",min:1,max:1,format:"Painting",title:"Whistler's Mother",source:"Whistler",year:"1871",img:"whistler",prompt:"Side-on in a chair. Hands folded."},
+ {id:"leo",min:1,max:1,format:"Meme",title:"Leo pointing",source:"Once Upon a Time in Hollywood",year:"2019",img:null,prompt:"Point at a screen. You know them."},
+ {id:"gothic",min:2,max:2,format:"Painting",title:"American Gothic",source:"Grant Wood",year:"1930",img:"gothic",prompt:"Side by side. Deadpan. Hold a fork."},
+ {id:"adam",min:2,max:2,format:"Painting",title:"The Creation of Adam",source:"Michelangelo",year:"c. 1512",img:"adam",prompt:"Fingers almost touching."},
+ {id:"arnolfini",min:2,max:2,format:"Painting",title:"The Arnolfini Portrait",source:"Van Eyck",year:"1434",img:"arnolfini",prompt:"Hold hands. One palm up."},
+ {id:"titanic",min:2,max:2,format:"Film",title:"Titanic, the bow",source:"Titanic",year:"1997",img:null,prompt:"Arms out at the front."},
+ {id:"spidey",min:2,max:3,format:"Meme",title:"Spider-Man pointing",source:"Spider-Man",year:"1967",img:null,prompt:"Point at each other."},
+ {id:"horatii",min:3,max:3,format:"Painting",title:"The Oath of the Horatii",source:"David",year:"1784",img:"horatii",prompt:"In a line. Arms out."},
+ {id:"distracted",min:3,max:3,format:"Meme",title:"Distracted boyfriend",source:"Stock photo",year:"2015",img:null,prompt:"Walk, turn, outrage."},
+ {id:"angels",min:3,max:3,format:"TV",title:"Charlie's Angels",source:"Charlie's Angels",year:"1976",img:null,prompt:"Back to back. Finger guns."},
+ {id:"abbey",min:4,max:4,format:"Album",title:"Abbey Road",source:"The Beatles",year:"1969",img:null,prompt:"Single file over a crossing."},
+ {id:"dogs",min:4,max:8,format:"Film",title:"Reservoir Dogs walk",source:"Reservoir Dogs",year:"1992",img:null,prompt:"Slow walk to camera."},
+ {id:"dance",min:5,max:5,format:"Painting",title:"Dance",source:"Matisse",year:"1910",img:"dance",prompt:"A ring, mid-leap."},
+ {id:"avengers",min:5,max:6,format:"Film",title:"Avengers circle",source:"The Avengers",year:"2012",img:null,prompt:"Back to back in a circle."},
+ {id:"boating",min:6,max:14,format:"Painting",title:"Luncheon of the Boating Party",source:"Renoir",year:"1881",img:"boating",prompt:"Lounge round a table."},
+ {id:"supper",min:6,max:13,format:"Painting",title:"The Last Supper",source:"Leonardo",year:"c. 1495",img:"supper",prompt:"One side of a table. Drama."}];
+
+export const REC: Record<string, Recreation> = Object.fromEntries(RECREATE.map((r) => [r.id, r]));
+
+// Trips: days 1, 3, 5… Otherwise once, on the day.
+export const isRecreateDay = (ev: MissionEvent, di: number) => (ev.type === "trip" ? di % 2 === 0 : di === 0);
+
+export const director = (ev: MissionEvent, di: number): string | null =>
+  ev.members.length ? shuffled(ev.members, ev.id + ":dir:" + di)[0] : null;
+
+export function recreateFor(ev: MissionEvent, di: number, count: number, offset: number): Recreation | null {
+  const opts = RECREATE.filter((r) => r.min <= count && count <= r.max);
+  if (!opts.length) return null;
+  return shuffled(opts, ev.id + ":rc:" + di + ":" + count)[(offset || 0) % opts.length];
+}

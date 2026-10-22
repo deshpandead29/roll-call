@@ -12,6 +12,8 @@ export type Mission = {
   task: string;
   sub?: string;
   icon: { text: string; bg: string; fg?: string };
+  // One swap a day (or per event) for the wildcard or the deck challenge.
+  swappable?: boolean;
   meta?: { hunt_type?: HuntType; hunt_tag?: string; hunt_order?: number; wild_cat?: WildCategory };
 };
 
@@ -29,6 +31,7 @@ export function Missions({
   shots,
   nextFrame,
   disabled,
+  swapped = false,
 }: {
   eventId: string;
   memberId: string;
@@ -39,6 +42,7 @@ export function Missions({
   shots: Shot[];
   nextFrame: number;
   disabled: boolean;
+  swapped?: boolean;
 }) {
   const router = useRouter();
   const input = useRef<HTMLInputElement>(null);
@@ -98,6 +102,16 @@ export function Missions({
     }
   }
 
+  async function swap() {
+    setError("");
+    const { error } = await createClient()
+      .from("swaps")
+      .upsert({ event_id: eventId, member_id: memberId, day, count: 1 }, { onConflict: "event_id,member_id,day" });
+    if (error) return setError("Couldn't swap it. Try again.");
+    setNote("Swapped");
+    router.refresh();
+  }
+
   async function remove(s: Shot) {
     setConfirmDelete(null);
     const supabase = createClient();
@@ -145,6 +159,9 @@ export function Missions({
                 <button className="shutter" onClick={() => shoot(m)} disabled={disabled || !!busy}>
                   {busy === m.kind ? "Printing…" : "Shoot"}
                 </button>
+                {m.swappable && !swapped && !mine.length && (
+                  <button className="ghost" onClick={swap} disabled={disabled || !!busy}>Swap</button>
+                )}
               </div>
             </div>
           </div>

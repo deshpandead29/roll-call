@@ -220,3 +220,8 @@ details.card>summary{font-family:var(--display);font-weight:800;font-variation-s
 details.card:not([open]){padding-bottom:22px}
 .notice{background:var(--card);border-radius:14px;padding:12px 14px;font-size:.95rem;box-shadow:inset 4px 0 0 var(--pink),0 1px 0 var(--line)}
 .notice.row{justify-content:space-between}
+.orig{display:block;max-width:100%;max-height:220px;border-radius:3px;box-shadow:0 0 0 6px #FFFFFF,0 10px 20px -10px var(--shadow);transform:rotate(-1.5deg);margin:6px 0 4px 6px}
+.twoup{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}
+.twoup figure{margin:0;display:flex;flex-direction:column;gap:8px;min-width:0}
+.twoup .orig{max-height:none;width:100%;margin:0}
+.twoup .ph{margin:0}
