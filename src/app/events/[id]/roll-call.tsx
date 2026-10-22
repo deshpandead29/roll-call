@@ -27,7 +27,7 @@ export type RollData = {
   };
   calls: {
     id: string;
-    caller_member_id: string;
+    caller_member_id: string | null;
     called_at: string;
     recipients: string[];
     answered: number;
@@ -139,7 +139,7 @@ export function RollCall({
   }, [eventId, router]);
 
   const st = data.state;
-  const name = (id: string) => members.find((m) => m.id === id)?.name ?? "Someone";
+  const name = (id: string | null) => members.find((m) => m.id === id)?.name ?? "Someone";
   const statusOf = (id: string) => data.statuses.find((s) => s.member_id === id);
   const isSnoozed = (id: string) => {
     const s = statusOf(id)?.snooze_until;

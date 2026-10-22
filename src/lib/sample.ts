@@ -91,7 +91,7 @@ export async function buildSample(onProgress?: (done: number, total: number) => 
     tick();
   }
 
-  const tile = (p: P, tag?: string): Tile => ({ id: `s${p.k}`, url: p.url, who: p.who, mission: p.mission, tag, late: p.extra.late });
+  const tile = (p: P, tag?: string): Tile => ({ id: `s${p.k}`, url: p.url, who: p.who, mission: p.mission, mine: false, storage_path: "", tag, late: p.extra.late });
   const photo = (p: P, tag?: string): Item => ({ type: "photo", tile: tile(p, tag) });
   const moments: Section[] = [];
 

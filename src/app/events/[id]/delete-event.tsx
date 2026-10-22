@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { sweep } from "@/lib/sweep";
 
 export function DeleteEvent({ eventId, groupId }: { eventId: string; groupId: string }) {
   const router = useRouter();
@@ -13,12 +14,15 @@ export function DeleteEvent({ eventId, groupId }: { eventId: string; groupId: st
   async function remove() {
     setBusy(true);
     setError("");
-    const { error } = await createClient().from("events").delete().eq("id", eventId);
+    const supabase = createClient();
+    const { error } = await supabase.from("events").delete().eq("id", eventId);
     if (error) {
       setBusy(false);
       setError("Couldn't delete it. Try again.");
       return;
     }
+    // Your own files go now; everyone else's go when they next open the app.
+    await sweep(supabase).catch(() => {});
     router.replace(`/groups/${groupId}`);
     router.refresh();
   }

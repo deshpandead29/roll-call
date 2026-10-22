@@ -6,7 +6,7 @@ import { groupFrame, HUNT_DAY, hunt, huntType, REC, type MissionEvent, type Phot
 // away cards in missed slots, trip days with the hunt wall, challenges, and
 // each person's shots. Everything here is plain data for the client view.
 
-export type Tile = { id: string; url: string; who: string; mission: string; tag?: string; late?: boolean };
+export type Tile = { id: string; url: string; who: string; mission: string; mine: boolean; storage_path: string; tag?: string; late?: boolean };
 export type Item =
   | { type: "photo"; tile: Tile }
   | { type: "away"; name: string; url: string | null; reason: string }
@@ -30,7 +30,7 @@ type Photo = {
   recreate_id: string | null;
   created_at: string;
 };
-type Call = { id: string; caller_member_id: string; called_at: string; reserved: boolean; extra: boolean; recipients: string[] };
+type Call = { id: string; caller_member_id: string | null; called_at: string; reserved: boolean; extra: boolean; recipients: string[] };
 type Status = { member_id: string; snooze_until: string | null; home: boolean; home_at: string | null };
 
 const TAPES = ["", "t-blue", "t-lime"] as const;
@@ -42,6 +42,9 @@ export async function buildReveal(
   ev: { id: string; name: string; type: EventType; start_date: string; end_date: string; timezone: string },
   members: Member[],
   honoree: string | null,
+  // me: your member id. hidden: photos you reported. names: everyone in the
+  // group, for callers who've since left the event.
+  opts: { me: string | null; hidden: string[]; names: { id: string; display_name: string }[] },
 ): Promise<Reveal> {
   const [{ data: photoRows }, { data: callRows }, { data: statusRows }] = await Promise.all([
     supabase
@@ -56,7 +59,7 @@ export async function buildReveal(
       .order("called_at"),
     supabase.from("member_status").select("member_id, snooze_until, home, home_at").eq("event_id", ev.id),
   ]);
-  const photos = (photoRows ?? []) as Photo[];
+  const photos = ((photoRows ?? []) as Photo[]).filter((p) => !opts.hidden.includes(p.id));
   const calls = (callRows ?? []) as Call[];
   const statuses = (statusRows ?? []) as Status[];
 
@@ -72,12 +75,15 @@ export async function buildReveal(
     sign("away-cards", members.map((m) => m.away_card_path).filter((p): p is string => !!p)),
   ]);
 
-  const name = (id: string) => members.find((m) => m.id === id)?.display_name ?? "Someone";
+  const name = (id: string | null) =>
+    (members.find((m) => m.id === id) ?? opts.names.find((m) => m.id === id))?.display_name ?? "Someone";
   const tile = (p: Photo, tag?: string): Tile => ({
     id: p.id,
     url: urls.get(`photos:${p.storage_path}`) ?? "",
     who: name(p.member_id),
     mission: p.mission ?? "",
+    mine: p.member_id === opts.me,
+    storage_path: p.storage_path,
     tag,
     late: p.late,
   });

@@ -19,6 +19,8 @@ import {
 import { createClient } from "@/lib/supabase/server";
 import { buildReveal } from "./build-reveal";
 import { DeleteEvent } from "./delete-event";
+import { JoinEvent } from "./join-event";
+import { Reports, type Report } from "./reports";
 import { RevealNow } from "./reveal-now";
 import { RevealView } from "./reveal";
 import { Missions, type Mission, type Shot } from "./missions";
@@ -42,6 +44,7 @@ type EventDetail = {
 
 type Coming = {
   member_id: string;
+  joined_at: string;
   group_members: { display_name: string; user_id: string | null; created_at: string; away_card_path: string | null };
 };
 
@@ -62,9 +65,10 @@ export default async function EventPage({
   if (!row) notFound();
   const ev = row as EventDetail;
 
-  const [{ data: group }, { data: comingRows }, { data: host }, { data: counts }, { data: photoRows }, { data: roll }] = await Promise.all([
-    supabase.from("groups").select("name").eq("id", ev.group_id).single(),
-    supabase.from("event_members").select("member_id, group_members(display_name, user_id, created_at, away_card_path)").eq("event_id", id),
+  const [{ data: group }, { data: groupMembers }, { data: comingRows }, { data: host }, { data: counts }, { data: photoRows }, { data: roll }] = await Promise.all([
+    supabase.from("groups").select("name, created_by").eq("id", ev.group_id).single(),
+    supabase.from("group_members").select("id, display_name, user_id").eq("group_id", ev.group_id),
+    supabase.from("event_members").select("member_id, joined_at, group_members(display_name, user_id, created_at, away_card_path)").eq("event_id", id),
     ev.host_member_id
       ? supabase.from("group_members").select("display_name, user_id").eq("id", ev.host_member_id).maybeSingle()
       : Promise.resolve({ data: null }),
@@ -74,15 +78,19 @@ export default async function EventPage({
     supabase.rpc("roll_state", { p_event_id: id }),
   ]);
 
-  // Join order, the same on every device, so missions match.
+  // Join order, the same on every device, so missions match. People who join
+  // the event late go last, so nobody else's challenge moves.
   const coming = ((comingRows ?? []) as unknown as Coming[])
-    .map((c) => ({ id: c.member_id, ...c.group_members }))
-    .sort((a, b) => a.created_at.localeCompare(b.created_at) || a.id.localeCompare(b.id));
+    .map((c) => ({ id: c.member_id, joined: c.joined_at, ...c.group_members }))
+    .sort((a, b) => a.joined.localeCompare(b.joined) || a.created_at.localeCompare(b.created_at) || a.id.localeCompare(b.id));
   const me = coming.find((m) => m.user_id === auth.claims.sub);
+  const meInGroup = (groupMembers ?? []).find((m) => m.user_id === auth.claims.sub);
   const status = eventStatus(ev, ev.timezone);
   const T = TYPES[ev.type];
   const honoree = coming.find((m) => m.id === ev.honoree_member_id);
   const isHost = host?.user_id === auth.claims.sub;
+  // The host looks after the event's photos, and so does whoever made the group.
+  const canModerate = isHost || (!!group?.created_by && group.created_by === auth.claims.sub);
   const today = todayIn(ev.timezone);
   const reveal = new Date(ev.reveal_at).toLocaleString("en-GB", {
     timeZone: ev.timezone,
@@ -172,7 +180,8 @@ export default async function EventPage({
   // What happened so far, from roll_state: calls with answer counts, and
   // who's snoozed or home right now.
   const rd = roll as RollData | null;
-  const nameOf = (mid: string) => coming.find((m) => m.id === mid)?.display_name ?? "Someone";
+  // Callers who've since left aren't on the event any more, but their name is.
+  const nameOf = (mid: string | null) => (groupMembers ?? []).find((m) => m.id === mid)?.display_name ?? "Someone";
   const nowMs = rd ? Date.parse(rd.now) : 0;
   const snoozed = (rd?.statuses ?? []).filter((x) => x.snooze_until && Date.parse(x.snooze_until) > nowMs).map((x) => nameOf(x.member_id));
   const gone = (rd?.statuses ?? []).filter((x) => x.home).map((x) => nameOf(x.member_id));
@@ -227,16 +236,32 @@ export default async function EventPage({
   );
 
   if (ev.revealed) {
+    // Reports: moderators see everyone's, reporters see their own (and those
+    // photos are hidden for them).
+    const { data: reportRows } = await supabase
+      .from("reports")
+      .select("id, photo_id, reason, reporter_member_id")
+      .eq("event_id", ev.id)
+      .order("created_at");
+    const reports = (reportRows ?? []) as Report[];
+    const mineReported = reports.filter((r) => r.reporter_member_id === meInGroup?.id).map((r) => r.photo_id);
     const data = await buildReveal(
       supabase,
       ev,
       coming.map((m) => ({ id: m.id, display_name: m.display_name, away_card_path: m.away_card_path })),
       honoree?.display_name ?? null,
+      { me: meInGroup?.id ?? null, hidden: canModerate ? [] : mineReported, names: groupMembers ?? [] },
     );
     return (
       <>
         {header}
-        <RevealView data={data} />
+        {canModerate && reports.length > 0 && (
+          <Reports
+            reports={reports.map((r) => ({ ...r, reporter: nameOf(r.reporter_member_id) }))}
+            photos={data.people.flatMap((p) => p.tiles)}
+          />
+        )}
+        <RevealView data={data} actions canModerate={canModerate} />
         {details}
       </>
     );
@@ -249,7 +274,8 @@ export default async function EventPage({
       {!me ? (
         <section className="card">
           <h2>Not on this one</h2>
-          <p className="muted">You&apos;ll see the reveal.</p>
+          <p className="muted">You&apos;ll still see the reveal. Join to get Roll Calls and a challenge.</p>
+          {meInGroup && <JoinEvent eventId={ev.id} memberId={meInGroup.id} />}
         </section>
       ) : (
         <>

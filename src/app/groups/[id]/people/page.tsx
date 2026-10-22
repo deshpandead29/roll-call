@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { AddNamesForm } from "../add-names-form";
 import { AwayUpload } from "../away-upload";
 import { InviteLink } from "../invite-link";
+import { LeaveGroup } from "../leave-group";
 
 export const metadata = { title: "People · Roll Call" };
 
@@ -71,6 +72,8 @@ export default async function PeoplePage({ params }: { params: Promise<{ id: str
         </div>
         <AwayUpload groupId={group.id} memberId={me.id} oldPath={me.away_card_path} />
       </section>
+
+      <LeaveGroup groupId={group.id} groupName={group.name} last={people.filter((m) => m.user_id).length === 1} />
     </>
   );
 }
