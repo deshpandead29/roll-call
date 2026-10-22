@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AwayCard } from "@/components/away-card";
 import { tilt } from "@/lib/events";
 import type { Item, Reveal, Tile } from "./build-reveal";
@@ -12,6 +12,29 @@ export function RevealView({ data }: { data: Reveal }) {
   const [tab, setTab] = useState<"moments" | "people">("moments");
   const [animate, setAnimate] = useState(true);
   const [open, setOpen] = useState<Tile | null>(null);
+  const root = useRef<HTMLDivElement>(null);
+
+  // Prints wait as negatives and develop when they scroll into view, a few
+  // at a time, so the ones further down aren't over before you get there.
+  useEffect(() => {
+    if (!animate || !root.current) return;
+    const waiting = root.current.querySelectorAll<HTMLElement>(".ph.wait");
+    const io = new IntersectionObserver(
+      (entries) => {
+        entries
+          .filter((e) => e.isIntersecting)
+          .forEach((e, k) => {
+            const el = e.target as HTMLElement;
+            el.style.setProperty("--d", `${(k * 0.12).toFixed(2)}s`);
+            el.classList.replace("wait", "pop");
+            io.unobserve(el);
+          });
+      },
+      { threshold: 0.3 },
+    );
+    waiting.forEach((el) => io.observe(el));
+    return () => io.disconnect();
+  }, [animate, tab]);
 
   useEffect(() => {
     if (!open) return;
@@ -20,14 +43,12 @@ export function RevealView({ data }: { data: Reveal }) {
     return () => document.removeEventListener("keydown", close);
   }, [open]);
 
-  let n = 0;
   const tile = (t: Tile) => {
-    const delay = animate ? Math.min(n++ * 0.07, 2) : 0;
     return (
       <button
         key={t.id}
-        className={`ph${animate ? " pop" : ""}`}
-        style={{ "--r": `${tilt(t.id, 2.6).toFixed(1)}deg`, "--d": `${delay.toFixed(2)}s` } as React.CSSProperties}
+        className={`ph${animate ? " wait" : ""}`}
+        style={{ "--r": `${tilt(t.id, 2.6).toFixed(1)}deg` } as React.CSSProperties}
         aria-label={`Open ${t.who}'s shot`}
         onClick={() => setOpen(t)}
       >
@@ -55,7 +76,7 @@ export function RevealView({ data }: { data: Reveal }) {
   }
 
   return (
-    <>
+    <div className="stack-lg" ref={root}>
       <section className="card t-lime">
         <div className="top">
           <h2>It&apos;s out</h2>
@@ -123,11 +144,17 @@ export function RevealView({ data }: { data: Reveal }) {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={open.url} alt={`${open.who}: ${open.mission}`} />
           <div className="row">
-            <a className="button ghost lb-save" href={`${open.url}&download=roll-call-${open.id}.jpg`}>Save</a>
+            <a
+              className="button ghost lb-save"
+              href={open.url.startsWith("data:") ? open.url : `${open.url}&download=roll-call-${open.id}.jpg`}
+              download={`roll-call-${open.id}.jpg`}
+            >
+              Save
+            </a>
             <button className="lb-close" autoFocus onClick={() => setOpen(null)}>Close</button>
           </div>
         </div>
       )}
-    </>
+    </div>
   );
 }

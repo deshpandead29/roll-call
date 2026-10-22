@@ -225,3 +225,20 @@ details.card:not([open]){padding-bottom:22px}
 .twoup figure{margin:0;display:flex;flex-direction:column;gap:8px;min-width:0}
 .twoup .orig{max-height:none;width:100%;margin:0}
 .twoup .ph{margin:0}
+.collage{position:relative;height:330px;max-width:100%}
+.collage .pc{position:absolute;width:min(46vw,200px);transform:rotate(var(--r));box-shadow:0 0 0 1px var(--line),0 16px 30px -16px var(--shadow);background:var(--print)}
+.collage .pc img{display:block;width:100%}
+.collage .pc:nth-child(1){left:0;top:30px;--r:-7deg;z-index:1}
+.collage .pc:nth-child(2){left:28%;top:0;--r:4deg;z-index:2}
+.collage .pc:nth-child(3){right:0;top:58px;--r:-2deg;z-index:3}
+.collage .pc::after{content:"";position:absolute;top:-10px;left:35%;width:60px;height:20px;background:var(--tape-lime);transform:rotate(-6deg)}
+.collage .pc:nth-child(2)::after{background:var(--tape-pink);transform:rotate(5deg)}
+.collage .pc:nth-child(3)::after{background:var(--tape-blue)}
+.credits{font-size:.78rem;color:var(--muted);line-height:1.6}
+.credits a{color:inherit}
+.notice{display:flex;flex-direction:column;gap:6px}
+.notice.row{flex-direction:row}
+.try-out{margin:0;display:flex;flex-direction:column;gap:8px;align-items:center}
+.try-out img{display:block;max-width:100%;box-shadow:0 0 0 1px var(--line),0 16px 30px -16px var(--shadow);transform:rotate(-1deg)}
+.stack-lg{display:flex;flex-direction:column;gap:34px}
+@media (prefers-reduced-motion:no-preference){.ph.wait img{filter:invert(1) sepia(1) saturate(2.8) hue-rotate(-32deg) brightness(.78) contrast(1.15)}}
