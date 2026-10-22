@@ -158,8 +158,6 @@ export function RollCall({
     .pop();
   const myAsk = data.asks.find((a) => a.requester_member_id === me.id);
   const openAsks = data.asks.filter((a) => a.requester_member_id !== me.id);
-  const snoozed = members.filter((m) => isSnoozed(m.id));
-  const home = members.filter((m) => isHome(m.id));
 
   // Nudges before calling: one at a time, first match wins.
   function nudge(): Sheet {
@@ -406,25 +404,6 @@ export function RollCall({
             ))}
         </div>
       )}
-      {(snoozed.length > 0 || home.length > 0) && (
-        <p className="muted small">
-          {snoozed.length > 0 && `Snoozed: ${snoozed.map((m) => m.name).join(", ")}`}
-          {snoozed.length > 0 && home.length > 0 && " · "}
-          {home.length > 0 && `Home: ${home.map((m) => m.name).join(", ")}`}
-        </p>
-      )}
-
-      {data.calls.length > 0 && (
-        <div className="calls">
-          {data.calls.map((c, k) => (
-            <p key={c.id} className="small">
-              <span className="hand ink">#{k + 1}</span> {name(c.caller_member_id)} · {hhmm(c.called_at, timeZone)} · {c.answered}/
-              {c.recipients.length + 1} shot
-            </p>
-          ))}
-        </div>
-      )}
-
       {shots.length > 0 && (
         <div className="negs">
           <div className="strip">

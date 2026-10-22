@@ -33,7 +33,9 @@ function detect(): Mode {
 }
 
 // Turns on Roll Call alerts for this device, or explains how on iPhone.
-export function AlertsSetup({ isAnonymous }: { isAnonymous: boolean }) {
+// The home page carries the full help (install steps, blocked, old iOS); the
+// event page only offers the one-tap "Turn on", so it never nags mid-event.
+export function AlertsSetup({ isAnonymous, compact = false }: { isAnonymous: boolean; compact?: boolean }) {
   const [mode, setMode] = useState<Mode>("loading");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -84,6 +86,16 @@ export function AlertsSetup({ isAnonymous }: { isAnonymous: boolean }) {
   }
 
   if (!KEY || mode === "loading" || mode === "on" || mode === "unsupported") return null;
+  if (compact) {
+    if (mode !== "ask") return null;
+    return (
+      <div className="notice row">
+        <span>Turn on alerts so your phone buzzes when someone calls roll.</span>
+        <button className="sm" onClick={turnOn} disabled={busy}>Turn on</button>
+        {error && <span className="error small" role="alert">{error}</span>}
+      </div>
+    );
+  }
 
   return (
     <section className="card t-blue">

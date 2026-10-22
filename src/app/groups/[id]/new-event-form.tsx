@@ -57,7 +57,6 @@ export function NewEventForm({ groupId, timeZone, members }: { groupId: string; 
 
   return (
     <section className="card t-lime">
-      <h2>New event</h2>
       <form className="stack" onSubmit={submit} noValidate>
         <div className="chips" role="group" aria-label="Type">
           {(Object.keys(TYPES) as EventType[]).map((k) => (
@@ -109,8 +108,11 @@ export function NewEventForm({ groupId, timeZone, members }: { groupId: string; 
             <span className="muted small">Gets one extra Roll Call.</span>
           </label>
         )}
-        <div className="field">
-          <span className="label">Pace</span>
+        {/* Most hosts keep Normal, so pace stays folded until wanted. */}
+        <details className="field">
+          <summary className="label pace-summary">
+            Pace · {PACES[pace]} <span className="hand small">{paceSummary(type, pace)}</span>
+          </summary>
           <div className="chips" role="group" aria-label="Pace">
             {(Object.keys(PACES) as Pace[]).map((k) => (
               <button key={k} type="button" className="chip" aria-pressed={pace === k} onClick={() => setPace(k)}>
@@ -118,8 +120,8 @@ export function NewEventForm({ groupId, timeZone, members }: { groupId: string; 
               </button>
             ))}
           </div>
-          <span className="hand small">{paceSummary(type, pace)}</span>
-        </div>
+          <span className="muted small">Chill has one fewer. Chaos has no limit, 30 minutes apart.</span>
+        </details>
         {error && <p className="error small" role="alert">{error}</p>}
         <div className="row">
           <button type="submit" className="shutter" disabled={busy}>{busy ? "Creating…" : "Create event"}</button>
