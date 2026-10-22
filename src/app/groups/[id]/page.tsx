@@ -25,7 +25,7 @@ export default async function GroupPage({ params }: { params: Promise<{ id: stri
   const { data: auth } = await supabase.auth.getClaims();
   if (!auth?.claims) redirect(`/sign-in?next=${encodeURIComponent(`/groups/${id}`)}`);
 
-  const [{ data: group }, { data: members }, { data: events }] = await Promise.all([
+  const [{ data: group }, { data: members }, { data: events }, { data: reports }] = await Promise.all([
     supabase.from("groups").select("id, name, invite_code, timezone").eq("id", id).maybeSingle(),
     supabase.from("group_members").select("id, display_name, user_id, away_card_path").eq("group_id", id).order("created_at"),
     supabase
@@ -33,6 +33,8 @@ export default async function GroupPage({ params }: { params: Promise<{ id: stri
       .select("id, name, type, start_date, end_date, pace, revealed")
       .eq("group_id", id)
       .order("start_date", { ascending: false }),
+    // RLS shows the host and group maker every report, and others their own.
+    supabase.from("reports").select("event_id, reporter_member_id, events!inner(group_id)").eq("events.group_id", id),
   ]);
   if (!group || !members) notFound();
 
@@ -40,6 +42,7 @@ export default async function GroupPage({ params }: { params: Promise<{ id: stri
   const me = people.find((m) => m.user_id === auth.claims.sub);
   if (!me) notFound();
   const joined = people.filter((m) => m.user_id).length;
+  const reported = new Set((reports ?? []).filter((r) => r.reporter_member_id !== me.id).map((r) => r.event_id));
 
   const list = ((events ?? []) as EventRow[]).map((e) => ({ ...e, status: eventStatus(e, group.timezone) }));
   const sections = (["Live", "Upcoming", "Revealed"] as const)
@@ -91,7 +94,10 @@ export default async function GroupPage({ params }: { params: Promise<{ id: stri
                         {e.status.sub ? ` · ${e.status.sub}` : ""}
                       </span>
                     </span>
-                    <span className={`pill ${e.status.tone}`}>{e.status.label}</span>
+                    <span className="row">
+                      {reported.has(e.id) && <span className="pill orange">Reported</span>}
+                      <span className={`pill ${e.status.tone}`}>{e.status.label}</span>
+                    </span>
                   </Link>
                 ))}
               </div>

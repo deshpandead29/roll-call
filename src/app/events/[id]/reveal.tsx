@@ -4,14 +4,17 @@ import { useEffect, useRef, useState } from "react";
 import { AwayCard } from "@/components/away-card";
 import { tilt } from "@/lib/events";
 import type { Item, Reveal, Tile } from "./build-reveal";
+import { PhotoActions } from "./photo-actions";
 
 // The reveal: Moments (Roll Calls side by side, days, challenges) and People.
 // Prints develop from negative to positive, staggered, on first view.
 
-export function RevealView({ data }: { data: Reveal }) {
+// `actions` turns on delete, remove and report (off for the sample).
+export function RevealView({ data, actions = false, canModerate = false }: { data: Reveal; actions?: boolean; canModerate?: boolean }) {
   const [tab, setTab] = useState<"moments" | "people">("moments");
   const [animate, setAnimate] = useState(true);
   const [open, setOpen] = useState<Tile | null>(null);
+  const [note, setNote] = useState("");
   const root = useRef<HTMLDivElement>(null);
 
   // Prints wait as negatives and develop when they scroll into view, a few
@@ -87,6 +90,8 @@ export function RevealView({ data }: { data: Reveal }) {
         </p>
       </section>
 
+      {note && <p className="hand blue" role="status">{note}</p>}
+
       {data.total === 0 && data.calls === 0 ? (
         <div className="empty">No shots this time.</div>
       ) : (
@@ -153,6 +158,17 @@ export function RevealView({ data }: { data: Reveal }) {
             </a>
             <button className="lb-close" autoFocus onClick={() => setOpen(null)}>Close</button>
           </div>
+          {actions && (
+            <PhotoActions
+              key={open.id}
+              tile={open}
+              canModerate={canModerate}
+              onDone={(n) => {
+                setOpen(null);
+                setNote(n);
+              }}
+            />
+          )}
         </div>
       )}
     </div>

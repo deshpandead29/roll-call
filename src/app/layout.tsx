@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { Sweep } from "@/components/sweep";
 import { body, display, hand } from "./fonts";
 import "./globals.css";
 
@@ -21,6 +22,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
     <html lang="en" className={`${display.variable} ${body.variable} ${hand.variable}`}>
       <body>
         <main className="wrap">{children}</main>
+        <Sweep />
       </body>
     </html>
   );
