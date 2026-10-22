@@ -1,25 +1,6 @@
 import type { Metadata, Viewport } from "next";
-import { Bricolage_Grotesque, Instrument_Sans } from "next/font/google";
-import localFont from "next/font/local";
+import { body, display, hand } from "./fonts";
 import "./globals.css";
-
-const display = Bricolage_Grotesque({
-  subsets: ["latin"],
-  axes: ["opsz", "wdth"],
-  variable: "--font-display",
-});
-
-const body = Instrument_Sans({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-  variable: "--font-body",
-});
-
-// Excalifont, Latin subset, from @excalidraw/excalidraw (SIL OFL).
-const hand = localFont({
-  src: "./fonts/excalifont.woff2",
-  variable: "--font-hand",
-});
 
 export const metadata: Metadata = {
   title: "Roll Call",
