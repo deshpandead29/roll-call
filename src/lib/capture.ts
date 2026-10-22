@@ -39,6 +39,4 @@ export async function discard(path: string) {
   await createClient().storage.from("photos").remove([path]);
 }
 
-export function hhmm(iso: string | number | Date, timeZone: string) {
-  return new Date(iso).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone });
-}
+export { hhmm } from "@/lib/events";

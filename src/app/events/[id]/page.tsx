@@ -15,7 +15,10 @@ import {
   type MissionEvent,
 } from "@/lib/missions";
 import { createClient } from "@/lib/supabase/server";
+import { buildReveal } from "./build-reveal";
 import { DeleteEvent } from "./delete-event";
+import { RevealNow } from "./reveal-now";
+import { RevealView } from "./reveal";
 import { Missions, type Mission, type Shot } from "./missions";
 import { RollCall, type RollData } from "./roll-call";
 
@@ -36,7 +39,7 @@ type EventDetail = {
 
 type Coming = {
   member_id: string;
-  group_members: { display_name: string; user_id: string | null; created_at: string };
+  group_members: { display_name: string; user_id: string | null; created_at: string; away_card_path: string | null };
 };
 
 export default async function EventPage({
@@ -58,7 +61,7 @@ export default async function EventPage({
 
   const [{ data: group }, { data: comingRows }, { data: host }, { data: counts }, { data: photoRows }, { data: roll }] = await Promise.all([
     supabase.from("groups").select("name").eq("id", ev.group_id).single(),
-    supabase.from("event_members").select("member_id, group_members(display_name, user_id, created_at)").eq("event_id", id),
+    supabase.from("event_members").select("member_id, group_members(display_name, user_id, created_at, away_card_path)").eq("event_id", id),
     ev.host_member_id
       ? supabase.from("group_members").select("display_name, user_id").eq("id", ev.host_member_id).maybeSingle()
       : Promise.resolve({ data: null }),
@@ -156,6 +159,31 @@ export default async function EventPage({
   const countOf = new Map(((counts ?? []) as { member_id: string; shots: number }[]).map((c) => [c.member_id, c.shots]));
   const total = coming.reduce((n, m) => n + (countOf.get(m.id) ?? 0), 0);
 
+  if (ev.revealed) {
+    const data = await buildReveal(
+      supabase,
+      ev,
+      coming.map((m) => ({ id: m.id, display_name: m.display_name, away_card_path: m.away_card_path })),
+      honoree?.display_name ?? null,
+    );
+    return (
+      <>
+        <div className="top">
+          <Link className="link" href={`/groups/${ev.group_id}`}>← {group?.name ?? "Back"}</Link>
+          <span className={`pill ${status.tone}`}>{status.label}</span>
+        </div>
+        <section className="hero">
+          <h1>{ev.name}</h1>
+          <p className="muted">
+            {T.label} · {formatWhen(ev)}
+          </p>
+        </section>
+        <RevealView data={data} />
+        {isHost && <DeleteEvent eventId={ev.id} groupId={ev.group_id} />}
+      </>
+    );
+  }
+
   return (
     <>
       <div className="top">
@@ -172,12 +200,7 @@ export default async function EventPage({
         </p>
       </section>
 
-      {ev.revealed ? (
-        <section className="card">
-          <h2>Revealed</h2>
-          <p className="muted">Shooting has ended. The reveal screen isn&apos;t built yet.</p>
-        </section>
-      ) : me ? (
+      {me ? (
         <>
         <AlertsSetup isAnonymous={!!auth.claims.is_anonymous} />
         {roll && (
@@ -275,6 +298,7 @@ export default async function EventPage({
             </>
           )}
         </dl>
+        {isHost && <RevealNow eventId={ev.id} />}
       </section>
 
       {isHost && <DeleteEvent eventId={ev.id} groupId={ev.group_id} />}
