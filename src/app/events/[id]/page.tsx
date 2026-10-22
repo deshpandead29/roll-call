@@ -16,6 +16,7 @@ import {
 import { createClient } from "@/lib/supabase/server";
 import { DeleteEvent } from "./delete-event";
 import { Missions, type Mission, type Shot } from "./missions";
+import { RollCall, type RollData } from "./roll-call";
 
 type EventDetail = {
   id: string;
@@ -54,7 +55,7 @@ export default async function EventPage({
   if (!row) notFound();
   const ev = row as EventDetail;
 
-  const [{ data: group }, { data: comingRows }, { data: host }, { data: counts }, { data: photoRows }] = await Promise.all([
+  const [{ data: group }, { data: comingRows }, { data: host }, { data: counts }, { data: photoRows }, { data: roll }] = await Promise.all([
     supabase.from("groups").select("name").eq("id", ev.group_id).single(),
     supabase.from("event_members").select("member_id, group_members(display_name, user_id, created_at)").eq("event_id", id),
     ev.host_member_id
@@ -63,6 +64,7 @@ export default async function EventPage({
     supabase.rpc("event_shot_counts", { p_event_id: id }),
     // Before the reveal, RLS returns only your own.
     supabase.from("photos").select("id, kind, day, frame, storage_path, member_id").eq("event_id", id).order("created_at"),
+    supabase.rpc("roll_state", { p_event_id: id }),
   ]);
 
   // Join order, the same on every device, so missions match.
@@ -131,7 +133,7 @@ export default async function EventPage({
   }
 
   // My shots for this day, shown as negatives.
-  const mine = (photoRows ?? []).filter((p) => p.member_id === me?.id && p.day === day);
+  const mine = (photoRows ?? []).filter((p) => p.member_id === me?.id && (p.day === day || p.kind === "roll"));
   const urls = new Map<string, string>();
   if (mine.length) {
     const { data } = await supabase.storage.from("photos").createSignedUrls(
@@ -148,6 +150,7 @@ export default async function EventPage({
     url: urls.get(p.storage_path) ?? null,
   }));
   const allMine = (photoRows ?? []).filter((p) => p.member_id === me?.id);
+  const nextFrame = Math.max(0, ...allMine.map((p) => p.frame ?? 0)) + 1;
 
   const countOf = new Map(((counts ?? []) as { member_id: string; shots: number }[]).map((c) => [c.member_id, c.shots]));
   const total = coming.reduce((n, m) => n + (countOf.get(m.id) ?? 0), 0);
@@ -174,6 +177,21 @@ export default async function EventPage({
           <p className="muted">Shooting has ended. The reveal screen isn&apos;t built yet.</p>
         </section>
       ) : me ? (
+        <>
+        {roll && (
+          <RollCall
+            eventId={ev.id}
+            type={ev.type}
+            timeZone={ev.timezone}
+            today={today}
+            me={{ id: me.id, name: me.display_name }}
+            members={coming.map((m) => ({ id: m.id, name: m.display_name }))}
+            honoree={honoree ? { id: honoree.id, name: honoree.display_name } : null}
+            data={roll as RollData}
+            shots={shots.filter((x) => x.kind === "roll")}
+            nextFrame={nextFrame}
+          />
+        )}
         <section className="card">
           <h2>Your challenge{ev.type === "trip" ? "s" : ""}</h2>
           {ev.type === "trip" && (
@@ -198,11 +216,12 @@ export default async function EventPage({
             day={day}
             today={today}
             missions={missions}
-            shots={shots}
-            nextFrame={Math.max(0, ...allMine.map((p) => p.frame ?? 0)) + 1}
+            shots={shots.filter((x) => x.kind !== "roll")}
+            nextFrame={nextFrame}
             disabled={ev.revealed}
           />
         </section>
+        </>
       ) : (
         <section className="card">
           <h2>Not on this one</h2>

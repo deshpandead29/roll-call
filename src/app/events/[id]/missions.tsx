@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
-import { develop, handDate, loadImage, toJpeg } from "@/lib/develop";
+import { discard, printAndUpload } from "@/lib/capture";
 import { ACCENT, type HuntType, type PhotoKind, type WildCategory } from "@/lib/missions";
 import { createClient } from "@/lib/supabase/client";
 
@@ -64,29 +64,17 @@ export function Missions({
     if (!file || !m) return;
     setBusy(m.kind);
     try {
-      let img: HTMLImageElement;
-      try {
-        img = await loadImage(file);
-      } catch {
-        throw new Error("Couldn't read that photo.");
-      }
       const frame = nextFrame;
-      const id = crypto.randomUUID();
-      const canvas = await develop(img, {
-        W: 1080,
+      const { id, path } = await printAndUpload(file, {
+        eventId,
+        memberId,
         frame,
         who: myName,
-        date: handDate(today),
+        today,
         mission: m.task,
         accent: ACCENT[m.kind],
-        seed: parseInt(id.slice(0, 5), 16),
       });
-      const blob = await toJpeg(canvas);
-      const supabase = createClient();
-      const path = `${eventId}/${memberId}/${id}.jpg`;
-      const up = await supabase.storage.from("photos").upload(path, blob, { contentType: "image/jpeg" });
-      if (up.error) throw new Error("Couldn't upload it. Check your signal and try again.");
-      const row = await supabase.from("photos").insert({
+      const row = await createClient().from("photos").insert({
         id,
         event_id: eventId,
         member_id: memberId,
@@ -98,7 +86,7 @@ export function Missions({
         ...m.meta,
       });
       if (row.error) {
-        await supabase.storage.from("photos").remove([path]);
+        await discard(path);
         throw new Error("Couldn't save it. Try again.");
       }
       setNote("Saved. It develops at the reveal.");
