@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { AlertsSetup } from "@/components/alerts-setup";
 import { Tally } from "@/components/tally";
-import { addDays, diffDays, eventStatus, formatWhen, PACES, paceSummary, todayIn, TYPES, type EventType, type Pace } from "@/lib/events";
+import { addDays, diffDays, eventStatus, formatDate, formatWhen, hhmm, PACES, paceSummary, todayIn, TYPES, type EventType, type Pace } from "@/lib/events";
 import {
   CAT_GLYPH,
   CAT_LABEL,
@@ -159,6 +159,63 @@ export default async function EventPage({
   const countOf = new Map(((counts ?? []) as { member_id: string; shots: number }[]).map((c) => [c.member_id, c.shots]));
   const total = coming.reduce((n, m) => n + (countOf.get(m.id) ?? 0), 0);
 
+  // What happened so far, from roll_state: calls with answer counts, and
+  // who's snoozed or home right now.
+  const rd = roll as RollData | null;
+  const nameOf = (mid: string) => coming.find((m) => m.id === mid)?.display_name ?? "Someone";
+  const nowMs = rd ? Date.parse(rd.now) : 0;
+  const snoozed = (rd?.statuses ?? []).filter((x) => x.snooze_until && Date.parse(x.snooze_until) > nowMs).map((x) => nameOf(x.member_id));
+  const gone = (rd?.statuses ?? []).filter((x) => x.home).map((x) => nameOf(x.member_id));
+  const live = status.label === "Live";
+
+  // Folded by default: the facts and the host's controls.
+  const details = (
+    <details className="card t-blue">
+      <summary>Event details</summary>
+      <dl className="facts">
+        <dt className="label">Who&apos;s coming</dt>
+        <dd>{coming.map((m) => m.display_name).join(", ")}</dd>
+        {T.honoree && honoree && (
+          <>
+            <dt className="label">{T.honoree}</dt>
+            <dd>{honoree.display_name}, with one extra Roll Call</dd>
+          </>
+        )}
+        <dt className="label">Pace</dt>
+        <dd>
+          {PACES[ev.pace]} · {paceSummary(ev.type, ev.pace)}
+        </dd>
+        <dt className="label">Reveal</dt>
+        <dd>{reveal}</dd>
+        {host && (
+          <>
+            <dt className="label">Host</dt>
+            <dd>{host.display_name}</dd>
+          </>
+        )}
+      </dl>
+      {isHost && !ev.revealed && <RevealNow eventId={ev.id} />}
+      {isHost && <DeleteEvent eventId={ev.id} groupId={ev.group_id} />}
+    </details>
+  );
+
+  const header = (
+    <>
+      <div className="top">
+        <Link className="link" href={`/groups/${ev.group_id}`}>← {group?.name ?? "Back"}</Link>
+        <span className={`pill ${status.tone}`}>{status.label}</span>
+      </div>
+      <section className="hero">
+        <h1>{ev.name}</h1>
+        <p className="muted">
+          {T.label} · {formatWhen(ev)}
+          {status.sub ? ` · ${status.sub}` : ""}
+          {!ev.revealed ? ` · reveals ${reveal}` : ""}
+        </p>
+      </section>
+    </>
+  );
+
   if (ev.revealed) {
     const data = await buildReveal(
       supabase,
@@ -168,140 +225,119 @@ export default async function EventPage({
     );
     return (
       <>
-        <div className="top">
-          <Link className="link" href={`/groups/${ev.group_id}`}>← {group?.name ?? "Back"}</Link>
-          <span className={`pill ${status.tone}`}>{status.label}</span>
-        </div>
-        <section className="hero">
-          <h1>{ev.name}</h1>
-          <p className="muted">
-            {T.label} · {formatWhen(ev)}
-          </p>
-        </section>
+        {header}
         <RevealView data={data} />
-        {isHost && <DeleteEvent eventId={ev.id} groupId={ev.group_id} />}
+        {details}
       </>
     );
   }
 
   return (
     <>
-      <div className="top">
-        <Link className="link" href={`/groups/${ev.group_id}`}>← {group?.name ?? "Back"}</Link>
-        <span className={`pill ${status.tone}`}>{status.label}</span>
-      </div>
+      {header}
 
-      <section className="hero">
-        <h1>{ev.name}</h1>
-        <p className="muted">
-          {T.label} · {formatWhen(ev)}
-          {ev.pace !== "normal" ? ` · ${PACES[ev.pace]}` : ""}
-          {status.sub ? ` · ${status.sub}` : ""}
-        </p>
-      </section>
-
-      {me ? (
-        <>
-        <AlertsSetup isAnonymous={!!auth.claims.is_anonymous} />
-        {roll && (
-          <RollCall
-            eventId={ev.id}
-            type={ev.type}
-            timeZone={ev.timezone}
-            today={today}
-            me={{ id: me.id, name: me.display_name }}
-            members={coming.map((m) => ({ id: m.id, name: m.display_name }))}
-            honoree={honoree ? { id: honoree.id, name: honoree.display_name } : null}
-            data={roll as RollData}
-            shots={shots.filter((x) => x.kind === "roll")}
-            nextFrame={nextFrame}
-          />
-        )}
-        <section className="card">
-          <h2>Your challenge{ev.type === "trip" ? "s" : ""}</h2>
-          {ev.type === "trip" && (
-            <>
-              <div className="days" role="group" aria-label="Day">
-                {days.map((d, k) => (
-                  <Link key={d} className="chip" aria-current={d === day ? "page" : undefined} href={`/events/${ev.id}?day=${d}`} scroll={false}>
-                    Day {k + 1}
-                  </Link>
-                ))}
-              </div>
-              <p className="hand">
-                {huntDay}
-                {day === today ? " · today" : ""}
-              </p>
-            </>
-          )}
-          <Missions
-            eventId={ev.id}
-            memberId={me.id}
-            myName={me.display_name}
-            day={day}
-            today={today}
-            missions={missions}
-            shots={shots.filter((x) => x.kind !== "roll")}
-            nextFrame={nextFrame}
-            disabled={ev.revealed}
-          />
-        </section>
-        </>
-      ) : (
+      {!me ? (
         <section className="card">
           <h2>Not on this one</h2>
           <p className="muted">You&apos;ll see the reveal.</p>
         </section>
+      ) : (
+        <>
+          <AlertsSetup isAnonymous={!!auth.claims.is_anonymous} compact />
+
+          {live && rd ? (
+            <RollCall
+              eventId={ev.id}
+              type={ev.type}
+              timeZone={ev.timezone}
+              today={today}
+              me={{ id: me.id, name: me.display_name }}
+              members={coming.map((m) => ({ id: m.id, name: m.display_name }))}
+              honoree={honoree ? { id: honoree.id, name: honoree.display_name } : null}
+              data={rd}
+              shots={shots.filter((x) => x.kind === "roll")}
+              nextFrame={nextFrame}
+            />
+          ) : (
+            <section className="card">
+              <h2>Starts {formatDate(ev.start_date)}</h2>
+              <p className="muted">Roll Calls and challenges open on the day. Here&apos;s a preview.</p>
+            </section>
+          )}
+
+          <section className="card">
+            <h2>Your challenge{ev.type === "trip" ? "s" : ""}</h2>
+            {ev.type === "trip" && (
+              <>
+                <div className="days" role="group" aria-label="Day">
+                  {days.map((d, k) => (
+                    <Link key={d} className="chip" aria-current={d === day ? "page" : undefined} href={`/events/${ev.id}?day=${d}`} scroll={false}>
+                      Day {k + 1}
+                    </Link>
+                  ))}
+                </div>
+                <p className="hand">
+                  {huntDay}
+                  {day === today ? " · today" : day > today ? " · opens on the day" : ""}
+                </p>
+              </>
+            )}
+            <Missions
+              eventId={ev.id}
+              memberId={me.id}
+              myName={me.display_name}
+              day={day}
+              today={today}
+              missions={missions}
+              shots={shots.filter((x) => x.kind !== "roll")}
+              nextFrame={nextFrame}
+              disabled={!live || day > today}
+            />
+          </section>
+        </>
       )}
 
-      <section className="card t-lime">
-        <div className="top">
-          <h2>Shots</h2>
-          <span className="big">{total}</span>
-        </div>
-        <p className="muted small">Who&apos;s shooting, not what.</p>
-        {coming.map((m) => {
-          const n = countOf.get(m.id) ?? 0;
-          return (
-            <div key={m.id} className="who">
-              <span>
-                {m.display_name}
-                {m.id === me?.id ? " (you)" : ""}
-              </span>
-              <Tally n={Math.min(n, 60)} seed={hash(m.display_name)} />
-              <span className="num">{n}</span>
+      {live && (
+        <section className="card t-lime">
+          <div className="top">
+            <h2>So far</h2>
+            <span className="big">{total}</span>
+          </div>
+          <p className="muted small">Who&apos;s shooting, not what.</p>
+          {coming.map((m) => {
+            const n = countOf.get(m.id) ?? 0;
+            return (
+              <div key={m.id} className="who">
+                <span>
+                  {m.display_name}
+                  {m.id === me?.id ? " (you)" : ""}
+                </span>
+                <Tally n={Math.min(n, 60)} seed={hash(m.display_name)} />
+                <span className="num">{n}</span>
+              </div>
+            );
+          })}
+          {(snoozed.length > 0 || gone.length > 0) && (
+            <p className="muted small">
+              {snoozed.length > 0 && `Snoozed: ${snoozed.join(", ")}`}
+              {snoozed.length > 0 && gone.length > 0 && " · "}
+              {gone.length > 0 && `Home: ${gone.join(", ")}`}
+            </p>
+          )}
+          {rd && rd.calls.length > 0 && (
+            <div className="calls">
+              {rd.calls.map((c, k) => (
+                <p key={c.id} className="small">
+                  <span className="hand ink">#{k + 1}</span> {nameOf(c.caller_member_id)} called · {hhmm(c.called_at, ev.timezone)} ·{" "}
+                  {c.answered}/{c.recipients.length + 1} shot
+                </p>
+              ))}
             </div>
-          );
-        })}
-      </section>
-
-      <section className="card t-blue">
-        <div className="top">
-          <h2>Reveal</h2>
-          <span className="hand ink">{reveal}</span>
-        </div>
-        <dl className="facts">
-          {T.honoree && honoree && (
-            <>
-              <dt className="label">{T.honoree}</dt>
-              <dd>{honoree.display_name}, with one extra Roll Call</dd>
-            </>
           )}
-          <dt className="label">Pace</dt>
-          <dd>
-            {PACES[ev.pace]} · {paceSummary(ev.type, ev.pace)}
-          </dd>
-          {host && (
-            <>
-              <dt className="label">Host</dt>
-              <dd>{host.display_name}</dd>
-            </>
-          )}
-        </dl>
-        {isHost && <RevealNow eventId={ev.id} />}
-      </section>
+        </section>
+      )}
 
-      {isHost && <DeleteEvent eventId={ev.id} groupId={ev.group_id} />}
+      {details}
     </>
   );
 }

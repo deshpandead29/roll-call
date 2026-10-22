@@ -99,6 +99,16 @@ Scrapbook UI over a clean base: a dotted notebook page, white cards held on with
 - Libraries: roughjs 4.6.6, rough-notation 0.5.1.
 - Phone first, single column, max width 560 px, safe-area insets respected.
 
+### Information architecture
+
+Research in `docs/research.md` (layout and navigation). Rules that keep pages light:
+
+- Each page has one job and one primary button. Home: your groups (New group). Group: its events (New event). Live event: Call roll and your challenges.
+- Forms get their own page: `/groups/new`, `/groups/[id]/events/new`, `/me`. Never stack a create form under a list.
+- Setup shows up only while it's needed: the invite card on a group until someone else joins, the away-card nudge until you've added one, the alerts prompt until alerts are on (full help on home, a one-line prompt on events).
+- Secondary information folds: "So far" (shot tally, calls, who's snoozed or home) and "Event details" (who's coming, pace, reveal time, host, Reveal now, Delete). People, invites and away cards live on `/groups/[id]/people`.
+- No more than two levels: a page plus one fold or one linked page.
+
 ## Build plan
 
 Recommended stack: Next.js (App Router) + TypeScript, Supabase (Postgres, Auth, Storage, Realtime), deployed on Vercel. Installable web app (PWA) first; native later only if groups keep using it.

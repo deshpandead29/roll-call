@@ -1,13 +1,9 @@
 import Link from "next/link";
 import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
-import { AwayCard } from "@/components/away-card";
 import { eventStatus, formatWhen, TYPES, type EventType, type Pace } from "@/lib/events";
 import { createClient } from "@/lib/supabase/server";
-import { AddNamesForm } from "./add-names-form";
-import { AwayUpload } from "./away-upload";
 import { InviteLink } from "./invite-link";
-import { NewEventForm } from "./new-event-form";
 
 type Member = { id: string; display_name: string; user_id: string | null; away_card_path: string | null };
 type EventRow = {
@@ -20,6 +16,9 @@ type EventRow = {
   revealed: boolean;
 };
 
+// The group page does one job: its events. People, invites and away cards
+// live on /people; the invite and away card only surface here while they're
+// still needed.
 export default async function GroupPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const supabase = await createClient();
@@ -40,33 +39,41 @@ export default async function GroupPage({ params }: { params: Promise<{ id: stri
   const people = members as Member[];
   const me = people.find((m) => m.user_id === auth.claims.sub);
   if (!me) notFound();
-
-  const awayPaths = people.map((m) => m.away_card_path).filter((p): p is string => !!p);
-  const awayUrls = new Map<string, string>();
-  if (awayPaths.length) {
-    const { data } = await supabase.storage.from("away-cards").createSignedUrls(awayPaths, 60 * 60);
-    data?.forEach((d) => d.path && d.signedUrl && awayUrls.set(d.path, d.signedUrl));
-  }
-
-  const h = await headers();
-  const origin = `${h.get("x-forwarded-proto") ?? "http"}://${h.get("host")}`;
-  const notJoined = people.filter((m) => !m.user_id).map((m) => m.display_name);
+  const joined = people.filter((m) => m.user_id).length;
 
   const list = ((events ?? []) as EventRow[]).map((e) => ({ ...e, status: eventStatus(e, group.timezone) }));
   const sections = (["Live", "Upcoming", "Revealed"] as const)
     .map((label) => ({ label, items: list.filter((e) => e.status.label === label) }))
     .filter((s) => s.items.length);
 
+  let invite: string | null = null;
+  if (joined < 2) {
+    const h = await headers();
+    invite = `${h.get("x-forwarded-proto") ?? "http"}://${h.get("host")}/join/${group.invite_code}`;
+  }
+
   return (
     <>
       <div className="top">
         <Link className="link" href="/">← Groups</Link>
+        <Link className="link" href={`/groups/${group.id}/people`}>People</Link>
       </div>
 
       <section className="hero">
         <h1>{group.name}</h1>
-        <p className="muted">{people.map((m) => m.display_name).join(", ")}</p>
+        <p className="muted">
+          {people.length} {people.length === 1 ? "person" : "people"}
+          {joined < people.length ? ` · ${joined} joined` : ""}
+        </p>
       </section>
+
+      {invite && (
+        <section className="card t-blue">
+          <h2>Invite your group</h2>
+          <p className="muted small">Nobody else has joined yet. Send them this link.</p>
+          <InviteLink url={invite} groupName={group.name} />
+        </section>
+      )}
 
       <section className="card">
         <h2>Events</h2>
@@ -91,40 +98,22 @@ export default async function GroupPage({ params }: { params: Promise<{ id: stri
             </div>
           ))
         ) : (
-          <div className="empty">Nothing yet.</div>
+          <div className="empty">No events yet. Make one for the next night out.</div>
         )}
-      </section>
-
-      <section className="card t-blue">
-        <h2>Invite</h2>
-        <p className="muted small">Anyone with this link can join {group.name}.</p>
-        <InviteLink url={`${origin}/join/${group.invite_code}`} groupName={group.name} />
-        {notJoined.length > 0 && <p className="muted small">Not joined yet: {notJoined.join(", ")}.</p>}
-        <AddNamesForm groupId={group.id} />
-      </section>
-
-      <NewEventForm
-        groupId={group.id}
-        timeZone={group.timezone}
-        members={people.map((m) => ({ id: m.id, name: m.display_name }))}
-      />
-
-
-      <section className="card">
-        <h2>Away cards</h2>
-        <p className="muted small">Shown when you miss a Roll Call.</p>
-        <div className="aways">
-          {people.map((m) => (
-            <AwayCard
-              key={m.id}
-              name={m.display_name}
-              url={m.away_card_path ? awayUrls.get(m.away_card_path) : null}
-              reason={m.id === me.id ? "you" : undefined}
-            />
-          ))}
+        <div className="row">
+          <Link className="button shutter" href={`/groups/${group.id}/events/new`}>New event</Link>
         </div>
-        <AwayUpload groupId={group.id} memberId={me.id} oldPath={me.away_card_path} />
       </section>
+
+      {!me.away_card_path && (
+        <section className="card t-lime">
+          <h2>Add your away card</h2>
+          <p className="muted small">A selfie that fills your slot if you miss a Roll Call.</p>
+          <div className="row">
+            <Link className="button ghost" href={`/groups/${group.id}/people#away`}>Add yours</Link>
+          </div>
+        </section>
+      )}
     </>
   );
 }

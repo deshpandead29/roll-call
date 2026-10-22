@@ -36,7 +36,6 @@ export function NewGroupForm({ defaultName }: { defaultName: string }) {
 
   return (
     <section className="card t-lime">
-      <h2>New group</h2>
       <form className="stack" onSubmit={submit} noValidate>
         <label className="field">
           <span className="label">Name</span>

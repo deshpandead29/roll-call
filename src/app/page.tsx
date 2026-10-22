@@ -1,7 +1,5 @@
 import Link from "next/link";
-import { AddEmailForm } from "@/components/add-email-form";
 import { AlertsSetup } from "@/components/alerts-setup";
-import { NewGroupForm } from "@/components/new-group-form";
 import { createClient } from "@/lib/supabase/server";
 
 type GroupRow = { id: string; name: string; group_members: { count: number }[] };
@@ -24,28 +22,22 @@ export default async function Home() {
     );
   }
 
-  const [{ data: groups }, { data: lastMe }] = await Promise.all([
-    supabase.from("groups").select("id, name, group_members(count)").order("created_at", { ascending: false }),
-    supabase
-      .from("group_members")
-      .select("display_name")
-      .eq("user_id", claims.sub)
-      .order("joined_at", { ascending: false })
-      .limit(1)
-      .maybeSingle(),
-  ]);
+  const { data: groups } = await supabase
+    .from("groups")
+    .select("id, name, group_members(count)")
+    .order("created_at", { ascending: false });
 
   return (
     <>
-      <section className="hero">
+      <div className="top">
         <p className="wordmark">Roll Call</p>
-      </section>
+        <Link className="link" href="/me">You</Link>
+      </div>
+
+      <AlertsSetup isAnonymous={!!claims.is_anonymous} />
 
       <section className="card">
-        <div className="top">
-          <h2>Your groups</h2>
-          <a className="link" href="/prototype">See a sample</a>
-        </div>
+        <h2>Your groups</h2>
         {groups?.length ? (
           <div className="trips">
             {(groups as GroupRow[]).map((g) => {
@@ -62,31 +54,12 @@ export default async function Home() {
             })}
           </div>
         ) : (
-          <div className="empty">No groups yet. Make one below, or open a friend&apos;s invite link.</div>
+          <div className="empty">No groups yet. Make one, or open the invite link a friend sent you.</div>
         )}
-      </section>
-
-      <AlertsSetup isAnonymous={!!claims.is_anonymous} />
-
-      <NewGroupForm defaultName={lastMe?.display_name ?? ""} />
-
-      <section className="card t-blue">
-        <h2>You</h2>
-        {claims.is_anonymous ? (
-          <details className="stack">
-            <summary className="link">Add your email</summary>
-            <p className="muted small">So you can sign in on another phone. Your groups and photos come with you.</p>
-            <AddEmailForm />
-          </details>
-        ) : (
-          <p className="muted">Signed in as {claims.email}</p>
-        )}
-        <form action="/auth/sign-out" method="post">
-          <button type="submit" className="link">Sign out</button>
-        </form>
-        {claims.is_anonymous && (
-          <p className="muted small">Signing out without an email loses this account.</p>
-        )}
+        <div className="row">
+          <Link className="button shutter" href="/groups/new">New group</Link>
+          <a className="link" href="/prototype">See a sample</a>
+        </div>
       </section>
     </>
   );
