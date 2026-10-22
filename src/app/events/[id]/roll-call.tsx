@@ -215,7 +215,7 @@ export function RollCall({
         time: hhmm(t, timeZone),
       });
       if (j.type === "call") {
-        const { error } = await supabase.rpc("call_roll", {
+        const { data: rollCallId, error } = await supabase.rpc("call_roll", {
           p_event_id: eventId,
           p_photo_id: printed.id,
           p_storage_path: printed.path,
@@ -223,6 +223,12 @@ export function RollCall({
           p_recipients: j.recipients,
         });
         if (error) throw new Error(error.message);
+        // Buzz everyone's phones. The call stands whether or not this works.
+        fetch("/api/push/roll-call", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ rollCallId }),
+        }).catch(() => {});
         setSheet(null);
         setNote(`Called. ${buzz} buzzed.`);
       } else {

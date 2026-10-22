@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { AddEmailForm } from "@/components/add-email-form";
+import { AlertsSetup } from "@/components/alerts-setup";
 import { NewGroupForm } from "@/components/new-group-form";
 import { createClient } from "@/lib/supabase/server";
 
@@ -64,6 +65,8 @@ export default async function Home() {
           <div className="empty">No groups yet. Make one below, or open a friend&apos;s invite link.</div>
         )}
       </section>
+
+      <AlertsSetup isAnonymous={!!claims.is_anonymous} />
 
       <NewGroupForm defaultName={lastMe?.display_name ?? ""} />
 
