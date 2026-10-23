@@ -45,3 +45,8 @@ More paintings, public domain, from Wikimedia Commons:
 - Klimt, The Kiss: [File:The Kiss - Gustav Klimt - Google Cultural Institute.jpg](https://commons.wikimedia.org/wiki/File:The_Kiss_-_Gustav_Klimt_-_Google_Cultural_Institute.jpg) (`prototype/art/kiss.jpg`)
 - Fragonard, The Swing: [File:Joean Honoré Fragonard - The Swing.jpg](https://commons.wikimedia.org/wiki/File:Joean_Honor%C3%A9_Fragonard_-_The_Swing.jpg) (`prototype/art/swing.jpg`)
 - Cézanne, The Card Players: [File:Les Joueurs de cartes, par Paul Cézanne.jpg](https://commons.wikimedia.org/wiki/File:Les_Joueurs_de_cartes,_par_Paul_C%C3%A9zanne.jpg) (`prototype/art/cardplayers.jpg`)
+- Millet, The Gleaners: [File:Jean-François Millet - Gleaners - Google Art Project 2.jpg](https://commons.wikimedia.org/wiki/File:Jean-Fran%C3%A7ois_Millet_-_Gleaners_-_Google_Art_Project_2.jpg) (`prototype/art/gleaners.jpg`)
+- Hokusai, The Great Wave off Kanagawa: [File:Tsunami by hokusai 19th century.jpg](https://commons.wikimedia.org/wiki/File:Tsunami_by_hokusai_19th_century.jpg) (`prototype/art/wave.jpg`)
+- Leutze, Washington Crossing the Delaware: [File:Washington Crossing the Delaware by Emanuel Leutze, MMA-NYC, 1851.jpg](https://commons.wikimedia.org/wiki/File:Washington_Crossing_the_Delaware_by_Emanuel_Leutze,_MMA-NYC,_1851.jpg) (`prototype/art/delaware.jpg`)
+- Seurat, A Sunday on La Grande Jatte: [File:A Sunday on La Grande Jatte, Georges Seurat, 1884.jpg](https://commons.wikimedia.org/wiki/File:A_Sunday_on_La_Grande_Jatte,_Georges_Seurat,_1884.jpg) (`prototype/art/jatte.jpg`)
+- Rembrandt, The Night Watch: [File:The Night Watch - cropped.jpg](https://commons.wikimedia.org/wiki/File:The_Night_Watch_-_cropped.jpg) (`prototype/art/nightwatch.jpg`)

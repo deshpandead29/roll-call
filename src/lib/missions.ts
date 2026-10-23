@@ -256,17 +256,17 @@ export const RECREATE: Recreation[] = [
  {id:"thelma",min:2,max:2,format:"Film",title:"Thelma & Louise",source:"Thelma & Louise",year:"1991",img:null,prompt:"In a parked car. Scarves. Hands up."},
  {id:"simba",min:2,max:3,format:"Film",title:"Simba held up",source:"The Lion King",year:"1994",img:null,prompt:"Hold something up to the sky. Everyone bows."},
  {id:"swing",min:2,max:3,format:"Painting",title:"The Swing",source:"Fragonard",year:"1767",img:"swing",prompt:"One on a swing (or a chair), one below in awe."},
- {id:"gleaners",min:3,max:3,format:"Painting",title:"The Gleaners",source:"Millet",year:"1857",img:null,prompt:"Three, bent over, picking something up."},
+ {id:"gleaners",min:3,max:3,format:"Painting",title:"The Gleaners",source:"Millet",year:"1857",img:"gleaners",prompt:"Three, bent over, picking something up."},
  {id:"pivot",min:3,max:3,format:"TV",title:"Pivot!",source:"Friends",year:"1999",img:null,prompt:"Carry something big up the stairs. One shouting."},
- {id:"wave",min:3,max:6,format:"Painting",title:"The Great Wave",source:"Hokusai",year:"c. 1831",img:null,prompt:"Be the wave. Arms curling over someone."},
+ {id:"wave",min:3,max:6,format:"Painting",title:"The Great Wave",source:"Hokusai",year:"c. 1831",img:"wave",prompt:"Be the wave. Arms curling over someone."},
  {id:"meangirls",min:4,max:4,format:"Film",title:"Jingle Bell Rock",source:"Mean Girls",year:"2004",img:null,prompt:"Four in a row. Matching. Hip out."},
  {id:"spice",min:5,max:5,format:"Album",title:"Spice",source:"Spice Girls",year:"1996",img:null,prompt:"Five, each a different attitude."},
  {id:"suspects",min:5,max:5,format:"Film",title:"The line-up",source:"The Usual Suspects",year:"1995",img:null,prompt:"In a line against a wall. Hold a number."},
- {id:"delaware",min:4,max:10,format:"Painting",title:"Washington Crossing the Delaware",source:"Leutze",year:"1851",img:null,prompt:"Crammed in a boat (any). One standing, heroic."},
+ {id:"delaware",min:4,max:10,format:"Painting",title:"Washington Crossing the Delaware",source:"Leutze",year:"1851",img:"delaware",prompt:"Crammed in a boat (any). One standing, heroic."},
  {id:"traitors",min:5,max:10,format:"TV",title:"The round table",source:"The Traitors",year:"2022",img:null,prompt:"Round a table. Everyone points at one person."},
  {id:"loveisland",min:4,max:10,format:"TV",title:"The recoupling",source:"Love Island",year:"2015",img:null,prompt:"In pairs by the fire pit. One left out."},
- {id:"jatte",min:5,max:10,format:"Painting",title:"A Sunday on La Grande Jatte",source:"Seurat",year:"1884",img:null,prompt:"Everyone side-on, still, ignoring each other."},
- {id:"nightwatch",min:6,max:14,format:"Painting",title:"The Night Watch",source:"Rembrandt",year:"1642",img:null,prompt:"Everyone mid-march, one pointing the way."},
+ {id:"jatte",min:5,max:10,format:"Painting",title:"A Sunday on La Grande Jatte",source:"Seurat",year:"1884",img:"jatte",prompt:"Everyone side-on, still, ignoring each other."},
+ {id:"nightwatch",min:6,max:14,format:"Painting",title:"The Night Watch",source:"Rembrandt",year:"1642",img:"nightwatch",prompt:"Everyone mid-march, one pointing the way."},
  {id:"fountain",min:6,max:6,format:"TV",title:"The opening titles",source:"Friends",year:"1994",img:null,prompt:"Six, a fountain or a sofa, arms out."}];
 
 export const REC: Record<string, Recreation> = Object.fromEntries(RECREATE.map((r) => [r.id, r]));
