@@ -1,15 +1,13 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { AlertsSetup } from "@/components/alerts-setup";
-import { Tally } from "@/components/tally";
-import { addDays, diffDays, eventStatus, formatDate, formatWhen, hhmm, PACES, paceSummary, todayIn, TYPES, type EventType, type Pace } from "@/lib/events";
+import { addDays, diffDays, eventStatus, formatDate, formatWhen, hhmm, todayIn, TYPES, type EventType, type Pace } from "@/lib/events";
 import {
   CAT_GLYPH,
   CAT_LABEL,
   director,
   groupFrame,
   isRecreateDay,
-  hash,
   HUNT_DAY,
   hunt,
   single,
@@ -18,10 +16,8 @@ import {
 } from "@/lib/missions";
 import { createClient } from "@/lib/supabase/server";
 import { buildReveal } from "./build-reveal";
-import { DeleteEvent } from "./delete-event";
 import { JoinEvent } from "./join-event";
 import { Reports, type Report } from "./reports";
-import { RevealNow } from "./reveal-now";
 import { RevealView } from "./reveal";
 import { Missions, type Mission, type Shot } from "./missions";
 import { Recreate } from "./recreate";
@@ -177,6 +173,17 @@ export default async function EventPage({
   const countOf = new Map(((counts ?? []) as { member_id: string; shots: number }[]).map((c) => [c.member_id, c.shots]));
   const total = coming.reduce((n, m) => n + (countOf.get(m.id) ?? 0), 0);
 
+  // Everyone's shots as negatives while it's live. Shots from before
+  // negatives existed show as a blank frame.
+  let negatives: { id: string; member_id: string; url: string | null }[] = [];
+  if (status.label === "Live") {
+    const { data: negRows } = await supabase.rpc("event_negatives", { p_event_id: ev.id });
+    const rows = (negRows ?? []) as { id: string; member_id: string }[];
+    const paths = rows.map((x) => `${ev.id}/${x.member_id}/${x.id}.jpg`);
+    const signed = paths.length ? (await supabase.storage.from("negatives").createSignedUrls(paths, 60 * 60)).data : [];
+    negatives = rows.map((x, k) => ({ ...x, url: signed?.[k]?.error ? null : (signed?.[k]?.signedUrl ?? null) }));
+  }
+
   // What happened so far, from roll_state: calls with answer counts, and
   // who's snoozed or home right now.
   const rd = roll as RollData | null;
@@ -188,47 +195,16 @@ export default async function EventPage({
   const live = status.label === "Live";
   const notJoined = coming.filter((m) => !m.user_id).map((m) => m.display_name);
 
-  // Folded by default: the facts and the host's controls.
-  const details = (
-    <details className="card t-blue">
-      <summary>Event details</summary>
-      <dl className="facts">
-        <dt className="label">Who&apos;s coming</dt>
-        <dd>{coming.map((m) => m.display_name).join(", ")}</dd>
-        {T.honoree && honoree && (
-          <>
-            <dt className="label">{T.honoree}</dt>
-            <dd>{honoree.display_name}, with one extra Roll Call</dd>
-          </>
-        )}
-        <dt className="label">Pace</dt>
-        <dd>
-          {PACES[ev.pace]} · {paceSummary(ev.type, ev.pace)}
-        </dd>
-        <dt className="label">Reveal</dt>
-        <dd>{reveal}</dd>
-        {host && (
-          <>
-            <dt className="label">Host</dt>
-            <dd>{host.display_name}</dd>
-          </>
-        )}
-      </dl>
-      {isHost && !ev.revealed && <RevealNow eventId={ev.id} />}
-      {isHost && <DeleteEvent eventId={ev.id} groupId={ev.group_id} />}
-    </details>
-  );
-
   const header = (
     <>
       <div className="top">
         <Link className="link" href={`/groups/${ev.group_id}`}>← {group?.name ?? "Back"}</Link>
-        <span className={`pill ${status.tone}`}>{status.label}</span>
+        <Link className="link" href={`/events/${ev.id}/details`}>Details</Link>
       </div>
       <section className="hero">
         <h1>{ev.name}</h1>
         <p className="muted">
-          {T.label} · {formatWhen(ev)}
+          <span className={`pill ${status.tone}`}>{status.label}</span> {T.label} · {formatWhen(ev)}
           {status.sub ? ` · ${status.sub}` : ""}
           {!ev.revealed ? ` · reveals ${reveal}` : ""}
         </p>
@@ -263,7 +239,6 @@ export default async function EventPage({
           />
         )}
         <RevealView data={data} actions canModerate={canModerate} />
-        {details}
       </>
     );
   }
@@ -366,18 +341,31 @@ export default async function EventPage({
             <h2>So far</h2>
             <span className="big">{total}</span>
           </div>
-          <p className="muted small">Who&apos;s shooting, not what.</p>
+          <p className="muted small">Everyone&apos;s negatives. They develop at the reveal.</p>
           {coming.map((m) => {
             const n = countOf.get(m.id) ?? 0;
+            const negs = negatives.filter((x) => x.member_id === m.id);
             return (
-              <div key={m.id} className="who">
-                <span>
-                  {m.display_name}
-                  {m.id === me?.id ? " (you)" : ""}
-                  {!m.user_id && <span className="muted small"> · not joined</span>}
-                </span>
-                <Tally n={Math.min(n, 60)} seed={hash(m.display_name)} />
-                <span className="num">{n}</span>
+              <div key={m.id} className="roll-row">
+                <div className="who">
+                  <span>
+                    {m.display_name}
+                    {m.id === me?.id ? " (you)" : ""}
+                    {!m.user_id && <span className="muted small"> · not joined</span>}
+                  </span>
+                  <span />
+                  <span className="num">{n}</span>
+                </div>
+                {negs.length > 0 && (
+                  <div className="strip">
+                    {negs.map((x) => (
+                      <div key={x.id} className="neg baked">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        {x.url && <img src={x.url} alt="" />}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             );
           })}
@@ -400,8 +388,6 @@ export default async function EventPage({
           )}
         </section>
       )}
-
-      {details}
     </>
   );
 }

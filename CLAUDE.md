@@ -4,7 +4,7 @@ Read this first. It records what's been decided, why, and what's left to build. 
 
 ## What it is
 
-A shared camera for a friend group. When someone calls roll, everyone's phone asks them to shoot the same moment from where they are. Short challenges fill the gaps. Every shot stays hidden (shown to its owner only as a film negative) until the reveal the next day, when the group sees everything side by side.
+A shared camera for a friend group. When someone calls roll, everyone's phone asks them to shoot the same moment from where they are. Short challenges fill the gaps. Every shot stays hidden (the group sees only small film negatives) until the reveal the next day, when the group sees everything side by side.
 
 The problem it solves: the one or two people who take all the photos never appear in them, and nobody sees the night from anyone else's angle.
 
@@ -76,7 +76,7 @@ Implemented in `develop()` in the prototype. Applied client-side at capture, bef
 - Grade (per pixel): centre-weighted flash gain (1.12 − 0.36·d²), saturation ×1.1–1.16, contrast ×1.13, cooler shadows and slightly neutral highlights, a small black crush, red/blue channel offset growing to the edges (chromatic aberration), and digital luma and chroma noise. Then a soft bloom: a 1/16-size copy screened on top at 20%.
 - Caption: the challenge text, lowercase, in Excalifont, with a rough.js underline in the mission colour. Meta line: "name · date · time · #frame". A small pink "roll call" sticker bottom right.
 - Mission colours: shared shot #3A57FF, hunt #FF7A1F, wildcard #FF4F9A, night/birthday/big-day challenge #FF7A1F, recreate #7A4FD0, Roll Call #16151A.
-- Until the reveal, your own shots appear only as orange negatives (CSS invert + sepia + hue-rotate) on a film strip. The reveal plays a staggered negative-to-positive develop animation, respecting reduced motion.
+- Until the reveal, your own shots appear only as orange negatives (CSS invert + sepia + hue-rotate) on a film strip. Everyone else's appear on the event as tiny negatives (45×60, inverted and tinted at capture, stored in the `negatives` bucket), enough to see who's shooting, not what. The reveal plays a staggered negative-to-positive develop animation, respecting reduced motion.
 
 Test it on real faces before shipping. The flash grade has only been checked on stock photos.
 
@@ -106,7 +106,7 @@ Research in `docs/research.md` (layout and navigation). Rules that keep pages li
 - Each page has one job and one primary button. Home: your groups (New group). Group: its events (New event). Live event: Call roll and your challenges.
 - Forms get their own page: `/groups/new`, `/groups/[id]/events/new`, `/me`. Never stack a create form under a list.
 - Setup shows up only while it's needed: the invite card on a group until someone else joins, the away-card nudge until you've added one, the alerts prompt until alerts are on (full help on home, a one-line prompt on events).
-- Secondary information folds: "So far" (shot tally, calls, who's snoozed or home) and "Event details" (who's coming, pace, reveal time, host, Reveal now, Delete). People and invites live on `/groups/[id]/people`. Your name, away card, alerts and account live on your profile, `/me`, reached from the round photo on home.
+- Secondary information folds or moves: "So far" (everyone's negatives, calls, who's snoozed or home) sits low on the event page, and Event details (who's coming, pace, reveal time, host, Reveal now, Delete) is its own page, `/events/[id]/details`, linked top right. People and invites live on `/groups/[id]/people`. Your name, away card, alerts and account live on your profile, `/me`, reached from the round photo on home.
 - No more than two levels: a page plus one fold or one linked page.
 
 ## Build plan
