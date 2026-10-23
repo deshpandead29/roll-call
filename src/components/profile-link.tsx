@@ -14,7 +14,7 @@ export async function ProfileLink({ userId }: { userId: string }) {
     <Link className="me-link" href="/me">
       <span className="avatar" aria-hidden="true">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        {url ? <img src={url} alt="" /> : (profile?.display_name?.[0] ?? "?").toUpperCase()}
+        {url ? <img src={url} alt="" /> : (profile?.display_name?.[0] ?? "").toUpperCase()}
       </span>
       Profile
     </Link>

@@ -186,6 +186,7 @@ export default async function EventPage({
   const snoozed = (rd?.statuses ?? []).filter((x) => x.snooze_until && Date.parse(x.snooze_until) > nowMs).map((x) => nameOf(x.member_id));
   const gone = (rd?.statuses ?? []).filter((x) => x.home).map((x) => nameOf(x.member_id));
   const live = status.label === "Live";
+  const notJoined = coming.filter((m) => !m.user_id).map((m) => m.display_name);
 
   // Folded by default: the facts and the host's controls.
   const details = (
@@ -281,6 +282,15 @@ export default async function EventPage({
         <>
           <AlertsSetup isAnonymous={!!auth.claims.is_anonymous} compact />
 
+          {notJoined.length > 0 && (
+            <div className="notice">
+              <span>
+                {notJoined.join(", ")} {notJoined.length === 1 ? "hasn't" : "haven't"} joined yet, so won&apos;t get Roll Calls.
+              </span>
+              <Link className="link small" href={`/groups/${ev.group_id}/people`}>Send the invite</Link>
+            </div>
+          )}
+
           {live && rd ? (
             <RollCall
               eventId={ev.id}
@@ -288,7 +298,7 @@ export default async function EventPage({
               timeZone={ev.timezone}
               today={today}
               me={{ id: me.id, name: me.display_name }}
-              members={coming.map((m) => ({ id: m.id, name: m.display_name }))}
+              members={coming.map((m) => ({ id: m.id, name: m.display_name, joined: !!m.user_id }))}
               honoree={honoree ? { id: honoree.id, name: honoree.display_name } : null}
               data={rd}
               shots={shots.filter((x) => x.kind === "roll")}
@@ -364,6 +374,7 @@ export default async function EventPage({
                 <span>
                   {m.display_name}
                   {m.id === me?.id ? " (you)" : ""}
+                  {!m.user_id && <span className="muted small"> · not joined</span>}
                 </span>
                 <Tally n={Math.min(n, 60)} seed={hash(m.display_name)} />
                 <span className="num">{n}</span>

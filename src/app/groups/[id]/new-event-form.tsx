@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { addDays, diffDays, MAX_TRIP_DAYS, PACES, paceSummary, todayIn, TYPES, type EventType, type Pace } from "@/lib/events";
+import { addDays, defaultEventName, diffDays, MAX_TRIP_DAYS, PACES, paceSummary, todayIn, TYPES, type EventType, type Pace } from "@/lib/events";
 import { createClient } from "@/lib/supabase/client";
 
 type Member = { id: string; name: string };
@@ -24,6 +24,8 @@ export function NewEventForm({ groupId, timeZone, members }: { groupId: string; 
   const picked = members.filter((m) => coming.includes(m.id));
   const honoreeId = picked.some((m) => m.id === honoree) ? honoree : (picked[0]?.id ?? "");
 
+  const fallback = defaultEventName(type, start, end, T.honoree && type === "birthday" ? picked.find((m) => m.id === honoreeId)?.name : undefined);
+
   function toggle(id: string) {
     setComing((cur) => (cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id]));
   }
@@ -40,7 +42,7 @@ export function NewEventForm({ groupId, timeZone, members }: { groupId: string; 
     const { data, error } = await createClient().rpc("create_event", {
       p_group_id: groupId,
       p_type: type,
-      p_name: name.trim() || T.name,
+      p_name: name.trim() || fallback,
       p_start_date: start,
       p_end_date: last,
       p_member_ids: picked.map((m) => m.id),
@@ -67,7 +69,7 @@ export function NewEventForm({ groupId, timeZone, members }: { groupId: string; 
         </div>
         <label className="field">
           <span className="label">Name</span>
-          <input placeholder={T.name} maxLength={80} autoComplete="off" value={name} onChange={(e) => setName(e.target.value)} />
+          <input placeholder={fallback} maxLength={80} autoComplete="off" value={name} onChange={(e) => setName(e.target.value)} />
         </label>
         <div className="row">
           <label className="field">

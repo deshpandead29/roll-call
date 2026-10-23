@@ -5,11 +5,11 @@ import { hash } from "@/lib/missions";
 export type EventType = "night" | "birthday" | "bigday" | "trip";
 export type Pace = "chill" | "normal" | "chaos";
 
-export const TYPES: Record<EventType, { label: string; open: number | null; cooldown: number; honoree: string | null; name: string }> = {
-  night: { label: "Night out", open: 3, cooldown: 75, honoree: null, name: "Friday at the Crown" },
-  birthday: { label: "Birthday", open: 2, cooldown: 75, honoree: "Birthday person", name: "Sam's 30th" },
-  bigday: { label: "Wedding or big day", open: 3, cooldown: 120, honoree: "Holds the couple's extra", name: "Ana and Tom's wedding" },
-  trip: { label: "Trip", open: null, cooldown: 180, honoree: "Organiser", name: "Lisbon, May bank holiday" },
+export const TYPES: Record<EventType, { label: string; open: number | null; cooldown: number; honoree: string | null }> = {
+  night: { label: "Night out", open: 3, cooldown: 75, honoree: null },
+  birthday: { label: "Birthday", open: 2, cooldown: 75, honoree: "Birthday person" },
+  bigday: { label: "Wedding or big day", open: 3, cooldown: 120, honoree: "Holds the couple's extra" },
+  trip: { label: "Trip", open: null, cooldown: 180, honoree: "Organiser" },
 };
 
 export const PACES: Record<Pace, string> = { chill: "Chill", normal: "Normal", chaos: "Chaos" };
@@ -46,6 +46,15 @@ export function hhmm(iso: string | number | Date, timeZone: string) {
 
 export function formatDate(s: string): string {
   return new Date(toUTC(s)).toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "UTC" });
+}
+
+// What an event is called if the host leaves the name blank.
+export function defaultEventName(type: EventType, start: string, end: string, honoree?: string): string {
+  if (!start) return TYPES[type].label;
+  const day = new Date(toUTC(start)).toLocaleDateString("en-GB", { weekday: "short", timeZone: "UTC" });
+  if (type === "birthday") return honoree ? `${honoree}'s birthday` : `Birthday, ${day} ${formatDate(start)}`;
+  if (type === "trip") return `Trip, ${formatWhen({ type, start_date: start, end_date: end || start })}`;
+  return `${type === "bigday" ? "Big day" : "Night out"}, ${day} ${formatDate(start)}`;
 }
 
 export function formatWhen(ev: { type: EventType; start_date: string; end_date: string }): string {

@@ -44,7 +44,7 @@ export default async function MePage() {
         <h2>Away card</h2>
         <p className="muted small">A selfie that fills your slot when you miss a Roll Call, in all your groups. Shown greyscale, marked away.</p>
         <div className="aways">
-          <AwayCard name={name || "You"} url={card} reason="you" />
+          <AwayCard name={name || "You"} url={card} reason={name ? "you" : undefined} />
         </div>
         <AwayForm userId={claims.sub} hasCard={!!card} />
       </section>

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { safeNext } from "@/lib/next-path";
 import { getClaims } from "@/lib/supabase/server";
@@ -16,6 +17,9 @@ export default async function SignInPage({
 
   return (
     <>
+      <div className="top">
+        <Link className="link" href="/">← Back</Link>
+      </div>
       <section className="hero">
         <h1>Sign in</h1>
         <p className="lede muted">We&apos;ll email you a code. No password.</p>

@@ -94,10 +94,7 @@ export default async function GroupPage({ params }: { params: Promise<{ id: stri
                         {e.status.sub ? ` · ${e.status.sub}` : ""}
                       </span>
                     </span>
-                    <span className="row">
-                      {reported.has(e.id) && <span className="pill orange">Reported</span>}
-                      <span className={`pill ${e.status.tone}`}>{e.status.label}</span>
-                    </span>
+                    {reported.has(e.id) && <span className="pill orange">Reported</span>}
                   </Link>
                 ))}
               </div>

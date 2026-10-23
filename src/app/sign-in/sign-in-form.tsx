@@ -98,7 +98,7 @@ export function SignInForm({ next, linkFailed }: { next: string; linkFailed: boo
         </label>
         {error && <p className="error small" role="alert">{error}</p>}
         <div className="row">
-          <button type="submit" disabled={busy}>Send link</button>
+          <button type="submit" disabled={busy}>Send code</button>
         </div>
       </form>
       <div className="stack">

@@ -1,10 +1,12 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { ChipInput, withDraft } from "@/components/chip-input";
 import { createClient } from "@/lib/supabase/client";
 
+// With a profile name, you join as that and the field stays out of the way.
 export function NewGroupForm({ defaultName }: { defaultName: string }) {
   const router = useRouter();
   const [name, setName] = useState("");
@@ -38,13 +40,19 @@ export function NewGroupForm({ defaultName }: { defaultName: string }) {
     <section className="card t-lime">
       <form className="stack" onSubmit={submit} noValidate>
         <label className="field">
-          <span className="label">Name</span>
+          <span className="label">Group name</span>
           <input placeholder="Uni lot" maxLength={60} autoComplete="off" value={name} onChange={(e) => setName(e.target.value)} />
         </label>
-        <label className="field">
-          <span className="label">Your name</span>
-          <input autoComplete="given-name" maxLength={40} value={me} onChange={(e) => setMe(e.target.value)} />
-        </label>
+        {defaultName ? (
+          <p className="muted small">
+            You&apos;re in it as {defaultName}. <Link className="link" href="/me">Change</Link>
+          </p>
+        ) : (
+          <label className="field">
+            <span className="label">Your name</span>
+            <input autoComplete="given-name" maxLength={40} value={me} onChange={(e) => setMe(e.target.value)} />
+          </label>
+        )}
         <ChipInput label="People" placeholder="Add a name" value={people} onChange={setPeople} />
         {error && <p className="error small" role="alert">{error}</p>}
         <div className="row">

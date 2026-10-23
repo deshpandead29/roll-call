@@ -2,9 +2,13 @@ import Link from "next/link";
 import { AlertsSetup } from "@/components/alerts-setup";
 import { HeroCollage } from "@/components/hero-collage";
 import { ProfileLink } from "@/components/profile-link";
+import { eventStatus, type EventType } from "@/lib/events";
 import { createClient } from "@/lib/supabase/server";
 
 type GroupRow = { id: string; name: string; group_members: { count: number }[] };
+type NowRow = { id: string; name: string; type: EventType; start_date: string; end_date: string; revealed: boolean; timezone: string; group_id: string };
+
+const clock = () => Date.now();
 
 export default async function Home() {
   const supabase = await createClient();
@@ -27,10 +31,19 @@ export default async function Home() {
     );
   }
 
-  const { data: groups } = await supabase
-    .from("groups")
-    .select("id, name, group_members(count)")
-    .order("created_at", { ascending: false });
+  const [{ data: groups }, { data: eventRows }] = await Promise.all([
+    supabase.from("groups").select("id, name, group_members(count)").order("created_at", { ascending: false }),
+    // Live now, or revealed in the last three days: the ones worth one tap.
+    supabase
+      .from("event_details")
+      .select("id, name, type, start_date, end_date, revealed, reveal_at, timezone, group_id")
+      .gte("reveal_at", new Date(clock() - 3 * 864e5).toISOString())
+      .order("start_date", { ascending: false }),
+  ]);
+  const groupName = (id: string) => (groups as GroupRow[] | null)?.find((g) => g.id === id)?.name ?? "";
+  const now = ((eventRows ?? []) as NowRow[])
+    .map((e) => ({ ...e, status: eventStatus(e, e.timezone) }))
+    .filter((e) => e.status.label !== "Upcoming");
 
   return (
     <>
@@ -40,6 +53,26 @@ export default async function Home() {
       </div>
 
       <AlertsSetup isAnonymous={!!claims.is_anonymous} />
+
+      {now.length > 0 && (
+        <section className="card t-blue">
+          <h2>Now</h2>
+          <div className="trips">
+            {now.map((e) => (
+              <Link key={e.id} className="trip" href={`/events/${e.id}`}>
+                <span>
+                  <strong>{e.name}</strong>
+                  <span className="muted small">
+                    {groupName(e.group_id)}
+                    {e.status.sub ? ` · ${e.status.sub}` : ""}
+                  </span>
+                </span>
+                <span className={`pill ${e.status.tone}`}>{e.status.label}</span>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
 
       <section className="card">
         <h2>Your groups</h2>
