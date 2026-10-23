@@ -126,7 +126,8 @@ export function shuffled<T>(arr: readonly T[], seed: string): T[] {
 
 // What the assignment needs to know about an event. `members` are names in
 // a fixed order (group join order), the same on every device.
-export type MissionEvent = { id: string; type: EventType; name: string; members: string[]; honoree: string | null };
+// `word`: the letter-day word the trip's maker typed, if any.
+export type MissionEvent = { id: string; type: EventType; name: string; members: string[]; honoree: string | null; word?: string | null };
 
 export type Hunt = { type: HuntType; text: string; sub: string; tag: string; glyph: string; bg?: string; order: number };
 
@@ -135,7 +136,10 @@ export function huntType(ev: MissionEvent, di: number): HuntType {
   return o[di % o.length];
 }
 
+// The maker's word if they typed one. Otherwise the trip name when it has a
+// letter per person, else a word sized to the group.
 function letterWord(ev: MissionEvent): string {
+  if (ev.word) return ev.word;
   const n = ev.members.length;
   const nm = (ev.name || "").toUpperCase().replace(/[^A-Z]/g, "");
   if (nm.length === n) return nm;

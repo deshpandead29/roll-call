@@ -33,6 +33,7 @@ type EventDetail = {
   pace: Pace;
   host_member_id: string | null;
   honoree_member_id: string | null;
+  hunt_word: string | null;
   timezone: string;
   reveal_at: string;
   revealed: boolean;
@@ -111,6 +112,7 @@ export default async function EventPage({
     type: ev.type,
     name: ev.name,
     members: coming.map((m) => m.display_name),
+    word: ev.hunt_word,
     honoree: honoree?.display_name ?? null,
   };
   const i = me ? coming.indexOf(me) : -1;

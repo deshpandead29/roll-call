@@ -17,6 +17,7 @@ type EventDetail = {
   pace: Pace;
   host_member_id: string | null;
   honoree_member_id: string | null;
+  hunt_word: string | null;
   timezone: string;
   reveal_at: string;
   revealed: boolean;
@@ -82,6 +83,12 @@ export default async function EventDetailsPage({ params }: { params: Promise<{ i
             <>
               <dt className="label">{T.honoree}</dt>
               <dd>{honoree}, with one extra Roll Call</dd>
+            </>
+          )}
+          {ev.type === "trip" && ev.hunt_word && (
+            <>
+              <dt className="label">Letter day</dt>
+              <dd>{ev.hunt_word}</dd>
             </>
           )}
           <dt className="label">Pace</dt>

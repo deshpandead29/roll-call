@@ -141,7 +141,7 @@ Mixed into the night-out deck and the trip nerve wildcards. October 2026: costum
 
 ## Trip: hunts (theme rotates daily)
 - Colour: Red, Yellow, Blue, Green, Orange, Pink, Purple, White, Black, Turquoise, Gold, Brown
-- Letter: together you spell the trip name if its letter count equals the group size, otherwise a word from the list below
+- Letter: together you spell the word the trip's maker typed when creating it (one letter each). If they left it blank, the trip name if it has a letter per person, otherwise a word from the list below
 - Number: together you count 1 to group size
 - Shape: a heart, by accident, a face in a thing, a perfect circle, a triangle, a star, an arrow, a spiral, a square, a hidden 8, a cross, a zigzag, a crescent moon, stripes, a hexagon
 - Texture: rust, peeling paint, moss, patterned tiles, neon, wicker, marble, cobbles, graffiti, corrugated metal, velvet, bubbles, chipped enamel, woodgrain, condensation, lace

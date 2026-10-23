@@ -39,7 +39,7 @@ const handDate = (s: string) =>
 
 export async function buildReveal(
   supabase: SupabaseClient,
-  ev: { id: string; name: string; type: EventType; start_date: string; end_date: string; timezone: string },
+  ev: { id: string; name: string; type: EventType; start_date: string; end_date: string; timezone: string; hunt_word: string | null },
   members: Member[],
   honoree: string | null,
   // me: your member id. hidden: photos you reported. names: everyone in the
@@ -131,7 +131,7 @@ export async function buildReveal(
   }
 
   if (ev.type === "trip") {
-    const mev: MissionEvent = { id: ev.id, type: ev.type, name: ev.name, members: members.map((m) => m.display_name), honoree };
+    const mev: MissionEvent = { id: ev.id, type: ev.type, name: ev.name, members: members.map((m) => m.display_name), honoree, word: ev.hunt_word };
     const days = Array.from({ length: diffDays(ev.start_date, ev.end_date) + 1 }, (_, k) => addDays(ev.start_date, k));
     days.forEach((d, di) => {
       const dp = photos.filter((p) => p.day === d);
