@@ -67,6 +67,8 @@ Full lists: `docs/challenges.md`. Recreate list with copyright notes: `docs/recr
 - **Non-trip events:** one challenge each from the event's deck. `{b}` becomes the honoree's name. One swap.
 - **Recreate:** on trips every other day (days 1, 3, 5…), otherwise once per event. A seeded "director" sees it; they pick how many people they can round up, and get a matching painting, film scene or meme. Paintings show the public-domain original in the app and side by side in the reveal. Films, TV, memes and album covers are words only (copyright).
 - Challenge assignment is deterministic, seeded by event id, day and person, so every device computes the same missions without storing them.
+- **Tone: challenges are the hook, so they have to be funny.** Each one is printed as the photo's caption, so it works like a Cards Against Humanity black card: the prompt sets up the joke, the photo lands it ("The reason we're not allowed back", "{f}'s villain origin story"). Specific, current and a bit cheeky; never generic ("A fun moment"), never cruel about strangers, nothing dangerous or illegal. Under 45 characters.
+- **Season list:** a few trend prompts (`SEASON` in `src/lib/missions.ts`) mix into the night-out deck and the trip nerve wildcards. Trends date fast, so refresh it every couple of months. TikTok and Instagram don't offer open trend data, so this comes from reading what's current.
 
 ## The photo look
 
@@ -85,7 +87,7 @@ Test it on real faces before shipping. The flash grade has only been checked on 
 Research behind these is in `docs/research.md`.
 
 - Short and plain. Buttons are one or two words: Shoot, Swap, Snooze 1h, Going home, Reveal now, Back it.
-- No slang, no jokes that have to land, no exclamation marks, no talking like the user's best friend.
+- No slang, no jokes that have to land, no exclamation marks, no talking like the user's best friend. This is for the app's own words (buttons, notices, errors). Challenges are the exception, below.
 - Status tags only for real status, as short adjectives in one style: Live, Upcoming, Revealed, plus "late" and "away" in the reveal. No decorative stickers.
 - Names are added as chips (type, Enter; Backspace removes the last; pasted comma lists split). People can also join a group from its link.
 - Current headline: "Every angle, all at once." Subline: "Call roll and everyone shoots the same moment. You see it all the next day." This is a placeholder. The owner isn't sold on it; earlier candidates were "Every angle of the night" (rejected: excludes daytime events) and "The group camera" (rejected: says nothing).

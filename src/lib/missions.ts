@@ -22,29 +22,66 @@ const WORDS: Record<number, string[]> = {2:["GO","YO","OK"],3:["FUN","SUN","WOW"
  8:["ROLLCALL","SUNSHINE","ROADTRIP"],9:["ADVENTURE","GOODTIMES","WANDERING"],10:["MEMORYLANE","BESTFRIEND"]};
 const HUNT_TYPES: HuntType[] = ["colour","letter","shape","texture","number"];
 export const HUNT_DAY: Record<HuntType, string> = {colour:"Colour day",letter:"Letter day",shape:"Shape day",texture:"Texture day",number:"Number day"};
-const GROUP=["Dinner, from your seat","First thing outside","The highest view","Our drinks","Last photo before bed","Your feet, furthest point",
- "The landmark, your angle","Today's best moment","Whoever has the map","Best mouthful","Look at that sky","Where you slept",
- "What's making us laugh","First sip","Where we're waiting","The group, ahead of you","The messiest table"];
+const GROUP=["Breakfast, rated out of ten","The first argument about directions","The view we paid extra for",
+ "Tourists in their natural habitat","The worst souvenir for sale","Today's main character","Where the plan fell apart",
+ "The group, looking lost","Something you can't get at home","The local cat","Today's snack haul","The postcard, but honest",
+ "The most tourist thing we did today","Today in one blurry photo","What we spent too much on","Someone asleep in transit",
+ "The best mouthful of the day","A sign that makes no sense","Last photo before bed","Golden hour, wasted on us",
+ "The queue that wasn't worth it","The worst corner of where we're staying","Who's carrying the most stuff",
+ "Dinner, from your seat","The highest view","Our drinks"];
 const CATS: WildCategory[] = ["people","lens","nerve","story"];
 export const CAT_LABEL: Record<WildCategory, string> = {people:"People",lens:"Lens",nerve:"Nerve",story:"Story"};
 export const CAT_GLYPH: Record<WildCategory, string> = {people:":)",lens:"( o )",nerve:"!!",story:"..."};
+// This season's trend prompts, mixed into the night-out deck and the trip
+// nerve wildcards. Trends date fast: refresh every couple of months.
+const SEASON=["Costume reveal, mid-drop","Pumpkin head illusion: anyone","A secret on a phone, signed -A","A Love Island-level serious debate"];
 const WILD: Record<WildCategory, string[]> = {
- people:["{f} mid-laugh","{f}, unaware","You and {f}","{f} shoots you","{f}'s hands","{f}, looking away","{f} as a statue","{f}, happiest",
-  "{f} reading a menu","Back of {f}'s head","{f} and a stranger","{f} as a local","{f} mid-rant","{f}'s best portrait","{f} mid-story","{f}, off guard"],
- lens:["From the ground","Through glass","A reflection","A silhouette","A great shadow","From above","Too close to tell","Framed by a door",
-  "Perfect symmetry","Motion blur","Forced perspective","Through a gap","One colour only","The postcard spot, reversed"],
- nerve:["Stock photo pose","Album cover, 3+","Slow-mo walk","A stranger shoots us","Act out a sign","Group jump","Today's film poster",
-  "All of us, tiny space","A local's pick","Same face, everyone","Something unpronounceable","Recreate an old photo","Pose with a lamppost","Everyone point at one thing"],
- story:["Gone by tomorrow","One for your mum","Not for your mum","Only here","A door to live behind","Today's topic","The quietest moment",
-  "What stopped you","What you'd buy","A queue","Postcard shot","Anti-postcard","Your shoes","A local's day","Smells amazing","Best bite","The story for home","What went wrong"]};
-const NIGHT=["Best-dressed stranger","Whoever's laughing hardest","The first drink","Bathroom mirror selfie","Someone mid-dance","The queue",
- "The worst snack","Two people, no photo yet","Your view right now","A story told with hands","The sign over the door","The messiest table",
- "On to the next place","Your shoes, end of night","The way home","Someone who hasn't noticed","The loudest moment"];
-const BIRTHDAY=["{b} mid-laugh","{b} and their oldest friend","{b} and someone new","The candles","{b} opening a present","The cake, untouched",
- "The cake, after","{b}'s \"how old?!\" face","Everyone singing","{b}, off guard","A toast to {b}","{b} and the organiser",
- "{b}, tomorrow's regret","{b}'s drink","{b} dancing","Best-dressed guest"];
-const BIGDAY=["The couple, off guard","The first dance","Happy tears","Best-dressed guest","Your table, messy","The speeches","Peak dance floor",
- "A grandparent dancing","The vows","First shoes off","The bouquet","A toast to {b}","The cake","Last ones standing"];
+ people:["{f}'s next profile picture","{f}, but it's a perfume ad","{f}'s villain origin story","{f}, main character, slow-mo",
+  "{f} pretending to be a local","{f}'s dating app photo, by you","{f} doing the face they do","{f} confidently explaining it wrong",
+  "{f} as a Renaissance painting","{f}, hounded by paparazzi","{f} in their element","You and {f}, awkward prom photo",
+  "{f}, caught being nice","{f}'s \"I'm fine\" face","{f}, secret travel influencer","{f}, low angle, menacing",
+  "{f}'s LinkedIn headshot","{f} if they were famous","{f} and their emotional support item","{f} shoots you, no warning"],
+ lens:["A Wes Anderson film: dead centre","A crime scene photo of today","Shot like a nature documentary","A perfume ad, anywhere",
+  "Through someone's sunglasses","From a dog's height","Make something tiny look huge","A face in an object","Everything one colour",
+  "Your shadow, up to something","A reflection that isn't a mirror","Accidentally an album cover","Looks AI-made but isn't",
+  "Like it's 2007: flash on","From the floor, looking up","Too close to tell what it is","Forced perspective: someone tiny"],
+ nerve:["A local's pick, then shoot it","A stranger takes a bad photo of us","Stock photo pose, in public","Synchronised jump, everyone",
+  "Your worst childhood photo, again","Order something you can't pronounce","Slow-mo walk, full commitment",
+  "The group as a boy band","A statue pose until someone notices","Act out a road sign","All of us, one tiny space",
+  "The most dramatic fake fall","Everyone point at one random thing","Propose to something inanimate",
+  "A royal audience with a pigeon","A silent disco, no music, in public",...SEASON],
+ story:["Gone by tomorrow","Not for your mum","What went wrong today","We'll laugh about this in ten years","Today's plot twist",
+  "The receipt of shame","Today's most expensive mistake","A door you'd move in behind","Today's best overheard line",
+  "What you'd steal (you won't)","Impossible to explain at home","Today, as a film poster","The calm before it all",
+  "The thing you'll tell everyone","A moment nobody else noticed","The souvenir you actually want"]};
+const NIGHT=["The reason we're not allowed back","Exhibit A","A red flag, spotted in the wild","Who's getting the 3am chips",
+ "The group chat's next profile picture","Proof we were here","The drink that was a mistake","Main character, right now",
+ "Your toilet queue best friend","Whoever said \"just one drink\"","Someone who just checked their bank app",
+ "Your best bouncer face","The exact moment it got out of hand","The smoking area philosopher","Your dating app opener",
+ "A LinkedIn headshot, at 1am","Something you'll deny tomorrow","The last sensible decision of the night",
+ "This table is a crime scene","The most chaotic handbag on the table","Someone's \"one more\" face",
+ "Evidence for the group chat trial","Things that should not be on this table","Most likely to go viral tonight",
+ "Tonight's album cover","Someone mid-story they shouldn't tell","Tonight's reality show: the villain",
+ "Tonight's reality show: the narrator","Lost property, before it's lost","A soul leaving a body","The food that saved the night",
+ "The worst decision on the way home","Someone dancing like no one's filming","Your face when the DJ played that",
+ "A hug that lasted too long","Someone ordering for the whole table","The friend who knows the bartender",
+ "Your outfit, from the floor"];
+const BIRTHDAY=["{b}, seconds before seeing the cake","{b} hearing their real age out loud","{b}'s villain origin story",
+ "{b}'s next profile picture","{b} with whoever gave the worst present","{b} pretending to love a present",
+ "The candles: a fire hazard","Proof {b} has friends","One for {b}'s mum","{b} giving a speech nobody asked for",
+ "{b}, one year older, in real time","{b} as a Wikipedia photo","{b}'s \"I'm fine\" face","{b}'s ex would hate this",
+ "{b} in their natural habitat","Someone singing happy birthday badly","The cake, after the vultures",
+ "{b} taking birthday tax off a plate","{b}'s face when the bill comes","Tomorrow's hangover, forecast","{b}, crowned",
+ "{b}, chased by paparazzi (us)","The last photo before the chaos","{b} as an album cover","{b} on a throne (any chair)",
+ "{b} and their oldest friend, unchanged","{b} trying to blow out a trick candle","{b}'s birthday dance, judged"];
+const BIGDAY=["The couple, unaware they're watched","Someone crying who swore they wouldn't","Who's already lost a shoe",
+ "The uncle on his fourth trip to the bar","The aunt asking who's next","The kids' table, plotting",
+ "A dance move that should be retired","Someone pretending to know the words","The moment the speech went too far",
+ "The photographer, photographed","A toast to {b}","The plus-one nobody knows","Someone asleep before ten",
+ "The cake, the before shot","The tie that came off first","The real wedding planner","{b} as a film poster",
+ "Proof of the open bar","The first dance, from the floor","Someone sweating through a speech","A guest definitely on their phone",
+ "Dad dancing, any age, any dad","Your table's best gossip, in one photo","Someone eyeing up a centrepiece",
+ "The last ones standing","Shoes off, dignity off","The bouquet's next victim","{b}, five years from now"];
 
 export const ACCENT: Record<PhotoKind, string> = {
   group: "#3A57FF",
@@ -55,7 +92,7 @@ export const ACCENT: Record<PhotoKind, string> = {
   roll: "#16151A",
 };
 
-const DECKS: Record<Exclude<EventType, "trip">, string[]> = { night: NIGHT, birthday: BIRTHDAY, bigday: BIGDAY };
+const DECKS: Record<Exclude<EventType, "trip">, string[]> = { night: [...NIGHT, ...SEASON], birthday: BIRTHDAY, bigday: BIGDAY };
 
 export function hash(str: string): number {
   let h = 1779033703 ^ str.length;
@@ -191,7 +228,46 @@ export const RECREATE: Recreation[] = [
  {id:"dance",min:5,max:5,format:"Painting",title:"Dance",source:"Matisse",year:"1910",img:"dance",prompt:"A ring, mid-leap."},
  {id:"avengers",min:5,max:6,format:"Film",title:"Avengers circle",source:"The Avengers",year:"2012",img:null,prompt:"Back to back in a circle."},
  {id:"boating",min:6,max:14,format:"Painting",title:"Luncheon of the Boating Party",source:"Renoir",year:"1881",img:"boating",prompt:"Lounge round a table."},
- {id:"supper",min:6,max:13,format:"Painting",title:"The Last Supper",source:"Leonardo",year:"c. 1495",img:"supper",prompt:"One side of a table. Drama."}];
+ {id:"supper",min:6,max:13,format:"Painting",title:"The Last Supper",source:"Leonardo",year:"c. 1495",img:"supper",prompt:"One side of a table. Drama."},
+ {id:"mona",min:1,max:1,format:"Painting",title:"Mona Lisa",source:"Leonardo",year:"c. 1503",img:"mona",prompt:"Hands folded. The smile. Give nothing away."},
+ {id:"wanderer",min:1,max:1,format:"Painting",title:"Wanderer above the Sea of Fog",source:"Friedrich",year:"1818",img:"wanderer",prompt:"Back to camera. Highest point. Brooding."},
+ {id:"napoleon",min:1,max:1,format:"Painting",title:"Napoleon Crossing the Alps",source:"David",year:"1801",img:"napoleon",prompt:"On a chair. One arm up. Coat flying."},
+ {id:"milkmaid",min:1,max:1,format:"Painting",title:"The Milkmaid",source:"Vermeer",year:"c. 1658",img:"milkmaid",prompt:"Pour a drink very slowly. Eyes down."},
+ {id:"folies",min:1,max:1,format:"Painting",title:"A Bar at the Folies-Bergère",source:"Manet",year:"1882",img:"folies",prompt:"Behind a bar, hands on the counter, dead-eyed."},
+ {id:"cavalier",min:1,max:1,format:"Painting",title:"The Laughing Cavalier",source:"Frans Hals",year:"1624",img:null,prompt:"Hand on hip. Smug. Very smug."},
+ {id:"blueboy",min:1,max:1,format:"Painting",title:"The Blue Boy",source:"Gainsborough",year:"c. 1770",img:null,prompt:"Hand on hip, something blue, chin up."},
+ {id:"bernie",min:1,max:1,format:"Meme",title:"Bernie's mittens",source:"Inauguration photo",year:"2021",img:null,prompt:"Sit cross-legged, arms folded, unbothered."},
+ {id:"disaster",min:1,max:1,format:"Meme",title:"Disaster Girl",source:"Viral photo",year:"2004",img:null,prompt:"Small smile. Chaos behind you."},
+ {id:"harold",min:1,max:1,format:"Meme",title:"Hide the Pain Harold",source:"Stock photo",year:"2011",img:null,prompt:"Mug in hand. Smile through it."},
+ {id:"thisisfine",min:1,max:1,format:"Meme",title:"This is fine",source:"KC Green comic",year:"2013",img:null,prompt:"Sit calmly with a drink. Chaos all round."},
+ {id:"gatsby",min:1,max:1,format:"Film",title:"The Gatsby toast",source:"The Great Gatsby",year:"2013",img:null,prompt:"Raise a glass. Fireworks optional."},
+ {id:"jim",min:1,max:1,format:"TV",title:"Jim's look to camera",source:"The Office",year:"2005",img:null,prompt:"Look straight down the lens. Say nothing."},
+ {id:"rocky",min:1,max:1,format:"Film",title:"Rocky on the steps",source:"Rocky",year:"1976",img:null,prompt:"Top of any stairs. Both arms up."},
+ {id:"penguin",min:1,max:1,format:"Meme",title:"The nihilist penguin",source:"Encounters at the End of the World",year:"2007",img:null,prompt:"Walk away from the group, towards nothing."},
+ {id:"wednesday",min:1,max:1,format:"TV",title:"The Wednesday dance",source:"Wednesday",year:"2022",img:null,prompt:"Mid-dance. Arms stiff. Dead stare."},
+ {id:"brat",min:1,max:3,format:"Album",title:"brat",source:"Charli XCX",year:"2024",img:null,prompt:"Something lime green. One blurry word."},
+ {id:"kiss",min:2,max:2,format:"Painting",title:"The Kiss",source:"Klimt",year:"1908",img:null,prompt:"One leans in, one tilts away. Gold if you've got it."},
+ {id:"cardplayers",min:2,max:2,format:"Painting",title:"The Card Players",source:"Cézanne",year:"c. 1893",img:null,prompt:"Across a table. Cards up. Zero trust."},
+ {id:"yellingcat",min:2,max:2,format:"Meme",title:"Woman yelling at a cat",source:"Two screenshots",year:"2019",img:null,prompt:"One furious and pointing. One baffled, with food."},
+ {id:"spaghetti",min:2,max:2,format:"Film",title:"The spaghetti kiss",source:"Lady and the Tramp",year:"1955",img:null,prompt:"Share one strand of anything."},
+ {id:"cuecards",min:2,max:2,format:"Film",title:"The cue cards",source:"Love Actually",year:"2003",img:null,prompt:"Silent cue cards at a door."},
+ {id:"shining",min:2,max:2,format:"Film",title:"The twins",source:"The Shining",year:"1980",img:null,prompt:"Side by side in a corridor. Hold hands. Stare."},
+ {id:"barbenheimer",min:2,max:2,format:"Film",title:"Barbenheimer",source:"Barbie and Oppenheimer",year:"2023",img:null,prompt:"One in pink, one in a hat. Opposite moods."},
+ {id:"thelma",min:2,max:2,format:"Film",title:"Thelma & Louise",source:"Thelma & Louise",year:"1991",img:null,prompt:"In a parked car. Scarves. Hands up."},
+ {id:"simba",min:2,max:3,format:"Film",title:"Simba held up",source:"The Lion King",year:"1994",img:null,prompt:"Hold something up to the sky. Everyone bows."},
+ {id:"swing",min:2,max:3,format:"Painting",title:"The Swing",source:"Fragonard",year:"1767",img:null,prompt:"One on a swing (or a chair), one below in awe."},
+ {id:"gleaners",min:3,max:3,format:"Painting",title:"The Gleaners",source:"Millet",year:"1857",img:null,prompt:"Three, bent over, picking something up."},
+ {id:"pivot",min:3,max:3,format:"TV",title:"Pivot!",source:"Friends",year:"1999",img:null,prompt:"Carry something big up the stairs. One shouting."},
+ {id:"wave",min:3,max:6,format:"Painting",title:"The Great Wave",source:"Hokusai",year:"c. 1831",img:null,prompt:"Be the wave. Arms curling over someone."},
+ {id:"meangirls",min:4,max:4,format:"Film",title:"Jingle Bell Rock",source:"Mean Girls",year:"2004",img:null,prompt:"Four in a row. Matching. Hip out."},
+ {id:"spice",min:5,max:5,format:"Album",title:"Spice",source:"Spice Girls",year:"1996",img:null,prompt:"Five, each a different attitude."},
+ {id:"suspects",min:5,max:5,format:"Film",title:"The line-up",source:"The Usual Suspects",year:"1995",img:null,prompt:"In a line against a wall. Hold a number."},
+ {id:"delaware",min:4,max:10,format:"Painting",title:"Washington Crossing the Delaware",source:"Leutze",year:"1851",img:null,prompt:"Crammed in a boat (any). One standing, heroic."},
+ {id:"traitors",min:5,max:10,format:"TV",title:"The round table",source:"The Traitors",year:"2022",img:null,prompt:"Round a table. Everyone points at one person."},
+ {id:"loveisland",min:4,max:10,format:"TV",title:"The recoupling",source:"Love Island",year:"2015",img:null,prompt:"In pairs by the fire pit. One left out."},
+ {id:"jatte",min:5,max:10,format:"Painting",title:"A Sunday on La Grande Jatte",source:"Seurat",year:"1884",img:null,prompt:"Everyone side-on, still, ignoring each other."},
+ {id:"nightwatch",min:6,max:14,format:"Painting",title:"The Night Watch",source:"Rembrandt",year:"1642",img:null,prompt:"Everyone mid-march, one pointing the way."},
+ {id:"fountain",min:6,max:6,format:"TV",title:"The opening titles",source:"Friends",year:"1994",img:null,prompt:"Six, a fountain or a sofa, arms out."}];
 
 export const REC: Record<string, Recreation> = Object.fromEntries(RECREATE.map((r) => [r.id, r]));
 
