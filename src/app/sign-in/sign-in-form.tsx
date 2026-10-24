@@ -13,8 +13,10 @@ export function SignInForm({ next, linkFailed }: { next: string; linkFailed: boo
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(linkFailed ? "That link has expired or was already used. Send a new one." : "");
 
+  // New accounts set up a name and away card first; /welcome passes straight
+  // through for anyone who has a name already. Invites ask for the name themselves.
   const done = () => {
-    router.replace(next);
+    router.replace(next.startsWith("/join/") ? next : `/welcome?next=${encodeURIComponent(next)}`);
     router.refresh();
   };
 
@@ -98,7 +100,7 @@ export function SignInForm({ next, linkFailed }: { next: string; linkFailed: boo
         </label>
         {error && <p className="error small" role="alert">{error}</p>}
         <div className="row">
-          <button type="submit" disabled={busy}>Send link</button>
+          <button type="submit" disabled={busy}>Send code</button>
         </div>
       </form>
       <div className="stack">

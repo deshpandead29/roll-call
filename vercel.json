@@ -1,0 +1,6 @@
+{
+  "crons": [
+    { "path": "/api/push/reveals", "schedule": "30 0 * * *" },
+    { "path": "/api/push/reveals", "schedule": "30 11 * * *" }
+  ]
+}

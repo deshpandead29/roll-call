@@ -7,11 +7,21 @@ import { createClient } from "@/lib/supabase/client";
 
 export type OpenName = { id: string; name: string };
 
-export function JoinForm({ code, signedIn, openNames }: { code: string; signedIn: boolean; openNames: OpenName[] }) {
+export function JoinForm({
+  code,
+  signedIn,
+  openNames,
+  defaultName = "",
+}: {
+  code: string;
+  signedIn: boolean;
+  openNames: OpenName[];
+  defaultName?: string;
+}) {
   const router = useRouter();
   const [ready, setReady] = useState(signedIn);
   const [claim, setClaim] = useState<string | null>(null);
-  const [name, setName] = useState("");
+  const [name, setName] = useState(defaultName);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const here = `/join/${encodeURIComponent(code)}`;
@@ -36,7 +46,7 @@ export function JoinForm({ code, signedIn, openNames }: { code: string; signedIn
     });
     setBusy(false);
     if (!error) {
-      router.replace(`/groups/${data}`);
+      router.replace(`/welcome?step=card&next=${encodeURIComponent(`/groups/${data}`)}`);
       router.refresh();
     } else if (error.code === "23505") {
       setError(claim ? "Someone already joined as that name." : "That name's taken. If it's you, pick it above.");

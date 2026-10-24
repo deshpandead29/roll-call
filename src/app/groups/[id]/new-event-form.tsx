@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { addDays, diffDays, MAX_TRIP_DAYS, PACES, paceSummary, todayIn, TYPES, type EventType, type Pace } from "@/lib/events";
+import { addDays, defaultEventName, diffDays, MAX_TRIP_DAYS, PACES, paceSummary, todayIn, TYPES, type EventType, type Pace } from "@/lib/events";
 import { createClient } from "@/lib/supabase/client";
 
 type Member = { id: string; name: string };
@@ -17,12 +17,16 @@ export function NewEventForm({ groupId, timeZone, members }: { groupId: string; 
   const [coming, setComing] = useState<string[]>(() => members.map((m) => m.id));
   const [honoree, setHonoree] = useState<string>("");
   const [pace, setPace] = useState<Pace>("normal");
+  // Trips: the word everyone spells on letter day, one letter each.
+  const [word, setWord] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
   const T = TYPES[type];
   const picked = members.filter((m) => coming.includes(m.id));
   const honoreeId = picked.some((m) => m.id === honoree) ? honoree : (picked[0]?.id ?? "");
+
+  const fallback = defaultEventName(type, start, end, T.honoree && type === "birthday" ? picked.find((m) => m.id === honoreeId)?.name : undefined);
 
   function toggle(id: string) {
     setComing((cur) => (cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id]));
@@ -35,12 +39,15 @@ export function NewEventForm({ groupId, timeZone, members }: { groupId: string; 
     if (last < start) return setError("End date is before the start.");
     if (diffDays(start, last) >= MAX_TRIP_DAYS) return setError(`${MAX_TRIP_DAYS} days max.`);
     if (picked.length < 2) return setError("Pick at least two people.");
+    const letters = type === "trip" ? word.toUpperCase().replace(/[^A-Z]/g, "") : "";
+    if (letters.length === 1) return setError("Make the word at least two letters.");
+    if (letters.length > picked.length) return setError(`Keep the word to ${picked.length} letters, one each.`);
     setBusy(true);
     setError("");
     const { data, error } = await createClient().rpc("create_event", {
       p_group_id: groupId,
       p_type: type,
-      p_name: name.trim() || T.name,
+      p_name: name.trim() || fallback,
       p_start_date: start,
       p_end_date: last,
       p_member_ids: picked.map((m) => m.id),
@@ -52,6 +59,8 @@ export function NewEventForm({ groupId, timeZone, members }: { groupId: string; 
       setError(error.message || "Couldn't create the event. Try again.");
       return;
     }
+    // Set straight after: if it fails, letter day falls back to the app's word.
+    if (letters) await createClient().from("events").update({ hunt_word: letters }).eq("id", data);
     router.push(`/events/${data}`);
   }
 
@@ -67,7 +76,7 @@ export function NewEventForm({ groupId, timeZone, members }: { groupId: string; 
         </div>
         <label className="field">
           <span className="label">Name</span>
-          <input placeholder={T.name} maxLength={80} autoComplete="off" value={name} onChange={(e) => setName(e.target.value)} />
+          <input placeholder={fallback} maxLength={80} autoComplete="off" value={name} onChange={(e) => setName(e.target.value)} />
         </label>
         <div className="row">
           <label className="field">
@@ -106,6 +115,22 @@ export function NewEventForm({ groupId, timeZone, members }: { groupId: string; 
               ))}
             </select>
             <span className="muted small">Gets one extra Roll Call.</span>
+          </label>
+        )}
+        {type === "trip" && (
+          <label className="field">
+            <span className="label">Letter day word</span>
+            <input
+              placeholder="Optional"
+              maxLength={14}
+              autoComplete="off"
+              autoCapitalize="characters"
+              value={word}
+              onChange={(e) => setWord(e.target.value.toUpperCase().replace(/[^A-Za-z]/g, ""))}
+            />
+            <span className="muted small">
+              One day, everyone hunts for a letter and together you spell this. Up to {picked.length} letters, one each. Leave it blank and we&apos;ll pick one.
+            </span>
           </label>
         )}
         {/* Most hosts keep Normal, so pace stays folded until wanted. */}

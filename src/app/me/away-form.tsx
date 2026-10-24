@@ -10,7 +10,19 @@ async function awayImage(file: File): Promise<Blob> {
   return new Promise<Blob>((resolve, reject) => c.toBlob((b) => (b ? resolve(b) : reject(new Error("encode"))), "image/jpeg", 0.8));
 }
 
-export function AwayUpload({ groupId, memberId, oldPath }: { groupId: string; memberId: string; oldPath: string | null }) {
+// Uploads a selfie as your away card and uses it in every group.
+export async function saveAwayCard(userId: string, file: File) {
+  const blob = await awayImage(file);
+  const supabase = createClient();
+  const path = `u/${userId}/${Date.now()}.jpg`;
+  const up = await supabase.storage.from("away-cards").upload(path, blob, { contentType: "image/jpeg" });
+  if (up.error) throw up.error;
+  const { error } = await supabase.rpc("set_my_away_card", { p_path: path });
+  if (error) throw error;
+}
+
+// One away card for all your groups. The old file is cleaned up by the sweep.
+export function AwayForm({ userId, hasCard }: { userId: string; hasCard: boolean }) {
   const router = useRouter();
   const input = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
@@ -23,14 +35,7 @@ export function AwayUpload({ groupId, memberId, oldPath }: { groupId: string; me
     setBusy(true);
     setError("");
     try {
-      const blob = await awayImage(file);
-      const supabase = createClient();
-      const path = `${groupId}/${memberId}/${Date.now()}.jpg`;
-      const up = await supabase.storage.from("away-cards").upload(path, blob, { contentType: "image/jpeg" });
-      if (up.error) throw up.error;
-      const row = await supabase.from("group_members").update({ away_card_path: path }).eq("id", memberId);
-      if (row.error) throw row.error;
-      if (oldPath) await supabase.storage.from("away-cards").remove([oldPath]);
+      await saveAwayCard(userId, file);
       router.refresh();
     } catch {
       setError("Couldn't save it. Try another photo.");
@@ -43,7 +48,7 @@ export function AwayUpload({ groupId, memberId, oldPath }: { groupId: string; me
     <div className="stack">
       <div className="row">
         <button type="button" className="ghost" disabled={busy} onClick={() => input.current?.click()}>
-          {busy ? "Saving…" : oldPath ? "Change yours" : "Add yours"}
+          {busy ? "Saving…" : hasCard ? "Change" : "Add yours"}
         </button>
         <span className="hand blue small">a selfie works</span>
       </div>

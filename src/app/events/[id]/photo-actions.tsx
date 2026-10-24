@@ -28,7 +28,7 @@ export function PhotoActions({ tile, canModerate, onDone }: { tile: Tile; canMod
       return setError(`Couldn't ${verb.toLowerCase()} it. Try again.`);
     }
     // Someone else's file goes when they next open the app.
-    if (tile.mine) await supabase.storage.from("photos").remove([tile.storage_path]);
+    if (tile.mine) await Promise.all([supabase.storage.from("photos").remove([tile.storage_path]), supabase.storage.from("negatives").remove([tile.storage_path])]);
     onDone(tile.mine ? "Deleted" : "Removed");
     router.refresh();
   }

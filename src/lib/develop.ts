@@ -246,3 +246,29 @@ export function awayCanvas(img: HTMLImageElement): HTMLCanvasElement {
   x.putImageData(d, 0, 0);
   return c;
 }
+
+// Negative for the group to see before the reveal: a 45×60 crop, inverted
+// and tinted orange like film. Small enough to show someone shot, not what.
+// Done by hand rather than with ctx.filter, which older iPhones lack.
+export function negativeCanvas(img: HTMLImageElement): HTMLCanvasElement {
+  const W = 45;
+  const H = 60;
+  const c = document.createElement("canvas");
+  c.width = W;
+  c.height = H;
+  const x = c.getContext("2d", { willReadFrequently: true })!;
+  const sw = img.naturalWidth;
+  const sh = img.naturalHeight;
+  const s = Math.max(W / sw, H / sh);
+  x.drawImage(img, (W - sw * s) / 2, (H - sh * s) / 2, sw * s, sh * s);
+  const d = x.getImageData(0, 0, W, H);
+  const p = d.data;
+  for (let i = 0; i < p.length; i += 4) {
+    const t = 1 - (0.3 * p[i] + 0.59 * p[i + 1] + 0.11 * p[i + 2]) / 255;
+    p[i] = 52 + 203 * t;
+    p[i + 1] = 22 + 128 * t;
+    p[i + 2] = 8 + 54 * t;
+  }
+  x.putImageData(d, 0, 0);
+  return c;
+}

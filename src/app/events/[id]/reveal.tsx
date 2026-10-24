@@ -86,7 +86,8 @@ export function RevealView({ data, actions = false, canModerate = false }: { dat
           <span className="big">{data.total}</span>
         </div>
         <p className="muted small">
-          {data.total} shot{data.total === 1 ? "" : "s"} · {data.calls} Roll Call{data.calls === 1 ? "" : "s"}
+          {data.total} shot{data.total === 1 ? "" : "s"}
+          {data.calls > 0 && ` · ${data.calls} Roll Call${data.calls === 1 ? "" : "s"}`}
         </p>
       </section>
 

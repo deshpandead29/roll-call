@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { discard, hhmm, printAndUpload } from "@/lib/capture";
 import type { EventType } from "@/lib/events";
 import { ACCENT } from "@/lib/missions";
@@ -37,7 +37,8 @@ export type RollData = {
   statuses: { member_id: string; snooze_until: string | null; home: boolean }[];
 };
 
-type Member = { id: string; name: string };
+// joined: false for a name nobody has claimed yet. They get no buzz.
+type Member = { id: string; name: string; joined?: boolean };
 type Call = RollData["calls"][number];
 type Job = { type: "call"; recipients: string[] | null } | { type: "answer"; call: Call };
 type Sheet = { copy: string; yes: string; no: string; split: string[] | null; mode: "split" | "all" };
@@ -100,6 +101,9 @@ export function RollCall({
   const [note, setNote] = useState("");
   const [error, setError] = useState("");
   const [dismissed, setDismissed] = useState<string[]>([]);
+  // Calls you've just answered, hidden before the refresh lands.
+  const [answered, setAnswered] = useState<string[]>([]);
+  const [refreshing, startRefresh] = useTransition();
 
   // Live: refresh when a call, ask, back or status changes; tick the clock.
   useEffect(() => {
@@ -152,6 +156,7 @@ export function RollCall({
       (c) =>
         c.caller_member_id !== me.id &&
         c.recipients.includes(me.id) &&
+        !answered.includes(c.id) &&
         now - Date.parse(c.called_at) < 15 * MIN &&
         !c.mine_answered,
     )
@@ -181,7 +186,7 @@ export function RollCall({
   }
 
   const recipients = sheet?.split && sheet.mode === "split" ? sheet.split : others.map((m) => m.id);
-  const buzz = recipients.filter((id) => !isSnoozed(id) && !isHome(id)).length;
+  const buzz = recipients.filter((id) => members.find((m) => m.id === id)?.joined !== false && !isSnoozed(id) && !isHome(id)).length;
 
   function openCamera(j: Job) {
     job.current = j;
@@ -237,9 +242,10 @@ export function RollCall({
           p_frame: nextFrame,
         });
         if (error) throw new Error(error.message);
+        setAnswered((a) => [...a, j.call.id]);
         setNote((res as { late: boolean }).late ? "Answered late. Still counts." : "Answered");
       }
-      router.refresh();
+      startRefresh(() => router.refresh());
     } catch (x) {
       if (printed) await discard(printed.path);
       setError(x instanceof Error ? x.message : "Couldn't save it. Try again.");
@@ -267,7 +273,7 @@ export function RollCall({
       .from("member_status")
       .upsert({ event_id: eventId, member_id: me.id, ...patch }, { onConflict: "event_id,member_id" });
     if (error) return setError("Couldn't save that. Try again.");
-    setNote({ "1h": "Snoozed 1 hour", night: "Snoozed till morning", home: "Get home safe", out: "Welcome back", wake: "Unsnoozed" }[what]);
+    setNote({ "1h": "Snoozed 1 hour", night: "Snoozed till morning", home: "Home. No more buzzes.", out: "Back out", wake: "Unsnoozed" }[what]);
     router.refresh();
   }
 
@@ -363,7 +369,7 @@ export function RollCall({
         </div>
       ) : (
         <>
-          <button className="callbtn" disabled={!st.ok || busy} onClick={() => setSheet(nudge())}>
+          <button className="callbtn" disabled={!st.ok || busy || refreshing} onClick={() => setSheet(nudge())}>
             <span className="callbtn-dot" />
             Call roll
           </button>

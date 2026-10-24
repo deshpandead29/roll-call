@@ -29,7 +29,10 @@ export default async function JoinPage({ params }: { params: Promise<{ code: str
 
   const signedIn = !!claimsData?.claims;
   let alreadyIn = false;
+  let myName = "";
   if (signedIn) {
+    const { data: profile } = await supabase.from("profiles").select("display_name").eq("user_id", claimsData!.claims.sub).maybeSingle();
+    myName = profile?.display_name ?? "";
     const { count } = await supabase
       .from("group_members")
       .select("id", { count: "exact", head: true })
@@ -43,7 +46,8 @@ export default async function JoinPage({ params }: { params: Promise<{ code: str
       <section className="hero">
         <span className="label">Join</span>
         <h1>{group.name}</h1>
-        <p className="lede muted">
+        <p className="lede">Call roll and everyone in the group shoots the same moment. You see it all the next day.</p>
+        <p className="muted">
           {group.member_count} {group.member_count === 1 ? "person" : "people"}
         </p>
       </section>
@@ -55,7 +59,7 @@ export default async function JoinPage({ params }: { params: Promise<{ code: str
           </div>
         </section>
       ) : (
-        <JoinForm code={code} signedIn={signedIn} openNames={group.open_names} />
+        <JoinForm code={code} signedIn={signedIn} openNames={group.open_names} defaultName={myName} />
       )}
     </>
   );
