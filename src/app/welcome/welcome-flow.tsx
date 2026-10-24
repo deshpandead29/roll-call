@@ -2,14 +2,31 @@
 
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
+import { AlertsSetup } from "@/components/alerts-setup";
 import { AwayCard } from "@/components/away-card";
 import { createClient } from "@/lib/supabase/client";
 import { saveAwayCard } from "../me/away-form";
 
-export function WelcomeFlow({ userId, next, name: initial, startAt }: { userId: string; next: string; name: string; startAt: "name" | "card" }) {
+// Name, away card, alerts. Roll Calls only reach people whose phone can
+// buzz, and on iPhone that needs Roll Call on the home screen (WebKit), so
+// alerts are part of setup rather than something to find later.
+export function WelcomeFlow({
+  userId,
+  next,
+  name: initial,
+  startAt,
+  isAnonymous,
+}: {
+  userId: string;
+  next: string;
+  name: string;
+  startAt: "name" | "card";
+  isAnonymous: boolean;
+}) {
   const router = useRouter();
   const input = useRef<HTMLInputElement>(null);
-  const [step, setStep] = useState(startAt);
+  const [step, setStep] = useState<"name" | "card" | "alerts">(startAt);
+  const numbered = startAt === "name";
   const [name, setName] = useState(initial);
   const [preview, setPreview] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -50,7 +67,7 @@ export function WelcomeFlow({ userId, next, name: initial, startAt }: { userId: 
     return (
       <>
         <section className="hero">
-          <span className="label">1 of 2</span>
+          <span className="label">1 of 3</span>
           <h1>What do your friends call you?</h1>
           <p className="lede muted">It&apos;s what your groups see on your shots. You can change it later.</p>
         </section>
@@ -70,10 +87,26 @@ export function WelcomeFlow({ userId, next, name: initial, startAt }: { userId: 
     );
   }
 
+  if (step === "alerts") {
+    return (
+      <>
+        <section className="hero">
+          {numbered && <span className="label">3 of 3</span>}
+          <h1>Get the buzz</h1>
+          <p className="lede muted">Roll Calls only work if your phone buzzes when a friend calls roll.</p>
+        </section>
+        <AlertsSetup isAnonymous={isAnonymous} onMode={(m) => (m === "on" || m === "unsupported") && go()} />
+        <div className="row">
+          <button className="link" onClick={go}>Skip for now</button>
+        </div>
+      </>
+    );
+  }
+
   return (
     <>
       <section className="hero">
-        {startAt === "name" && <span className="label">2 of 2</span>}
+        {numbered && <span className="label">2 of 3</span>}
         <h1>Add your away card</h1>
         <p className="lede muted">A selfie that fills your slot when you miss a Roll Call. Shown greyscale, marked away, in all your groups.</p>
       </section>
@@ -84,11 +117,11 @@ export function WelcomeFlow({ userId, next, name: initial, startAt }: { userId: 
         {error && <p className="error small" role="alert">{error}</p>}
         <div className="row">
           {preview ? (
-            <button onClick={go}>Done</button>
+            <button onClick={() => setStep("alerts")}>Next</button>
           ) : (
             <>
               <button className="shutter" disabled={busy} onClick={() => input.current?.click()}>{busy ? "Saving…" : "Take a selfie"}</button>
-              <button className="link" onClick={go}>Skip for now</button>
+              <button className="link" onClick={() => setStep("alerts")}>Skip for now</button>
             </>
           )}
         </div>

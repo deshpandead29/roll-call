@@ -231,6 +231,14 @@ export default async function EventPage({
       .eq("event_id", ev.id)
       .order("created_at");
     const reports = (reportRows ?? []) as Report[];
+    const { data: nextRows } = await supabase
+      .from("event_details")
+      .select("id, name, type, start_date, end_date, revealed")
+      .eq("group_id", ev.group_id)
+      .eq("revealed", false)
+      .order("start_date")
+      .limit(1);
+    const next = (nextRows ?? [])[0] as { id: string; name: string; type: EventType; start_date: string; end_date: string; revealed: boolean } | undefined;
     const mineReported = reports.filter((r) => r.reporter_member_id === meInGroup?.id).map((r) => r.photo_id);
     const data = await buildReveal(
       supabase,
@@ -249,6 +257,28 @@ export default async function EventPage({
           />
         )}
         <RevealView data={data} actions canModerate={canModerate} />
+        {/* The reveal is the high point; end it with the next one, not a dead end. */}
+        <section className="card t-blue">
+          <h2>{next ? "Next up" : "Do it again"}</h2>
+          {next ? (
+            <Link className="trip" href={`/events/${next.id}`}>
+              <span>
+                <strong>{next.name}</strong>
+                <span className="muted small">
+                  {formatDate(next.start_date)} · {eventStatus(next, ev.timezone).sub ?? "today"}
+                </span>
+              </span>
+              <span className="hand ink" aria-hidden="true">→</span>
+            </Link>
+          ) : (
+            <>
+              <p className="muted small">Nothing planned for {group?.name ?? "the group"} yet.</p>
+              <div className="row">
+                <Link className="button" href={`/groups/${ev.group_id}/events/new`}>Plan the next one</Link>
+              </div>
+            </>
+          )}
+        </section>
       </>
     );
   }
@@ -293,7 +323,13 @@ export default async function EventPage({
           ) : (
             <section className="card">
               <h2>Starts {formatDate(ev.start_date)}</h2>
-              <p className="muted">Roll Calls and challenges open on the day. Here&apos;s a preview.</p>
+              <p className="muted">
+                {status.sub ? `That's ${status.sub}. ` : ""}Roll Calls and challenges open on the day. Here&apos;s a preview of yours.
+              </p>
+              <div className="row">
+                <Link className="button ghost" href="/try">Try the look</Link>
+                <span className="muted small">on any photo, while you wait</span>
+              </div>
             </section>
           )}
 

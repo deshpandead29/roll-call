@@ -70,7 +70,7 @@ export default async function Home() {
     const l = mine.find((e) => e.status.label === "Live");
     if (l) return { text: `${l.name} is live`, rank: 3e13 };
     const next = mine.filter((e) => e.status.label === "Upcoming").pop();
-    if (next) return { text: `Next: ${next.name}, ${formatDate(next.start_date)}`, rank: 2e13 - Date.parse(next.start_date) };
+    if (next) return { text: `Next: ${next.name}, ${next.status.sub ?? formatDate(next.start_date)}`, rank: 2e13 - Date.parse(next.start_date) };
     const last = mine.find((e) => e.revealed);
     if (last) return { text: `Last: ${last.name}, ${formatDate(last.start_date)}`, rank: Date.parse(last.start_date) };
     return { text: "", rank: 0 };
@@ -98,7 +98,7 @@ export default async function Home() {
                   <strong>{e.name}</strong>
                   <span className="muted small">
                     {groupName(e.group_id)}
-                    {e.status.label === "Upcoming" ? ` · ${formatDate(e.start_date)}` : e.status.sub ? ` · ${e.status.sub}` : ""}
+                    {e.status.sub ? ` · ${e.status.sub}` : ""}
                   </span>
                 </span>
                 <span className={`pill ${e.status.tone}`}>{e.status.label}</span>

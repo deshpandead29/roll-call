@@ -69,7 +69,11 @@ export function eventStatus(
 ): Status {
   if (ev.revealed) return { label: "Revealed", tone: "lime" };
   const today = todayIn(timeZone);
-  if (today < ev.start_date) return { label: "Upcoming", tone: "blue" };
+  if (today < ev.start_date) {
+    // Counting down builds the anticipation (see docs/research.md, retention).
+    const n = diffDays(today, ev.start_date);
+    return { label: "Upcoming", tone: "blue", sub: n === 1 ? "tomorrow" : `in ${n} days` };
+  }
   if (ev.type === "trip") {
     const days = diffDays(ev.start_date, ev.end_date) + 1;
     const i = diffDays(ev.start_date, today);
