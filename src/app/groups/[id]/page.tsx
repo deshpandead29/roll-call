@@ -46,7 +46,9 @@ export default async function GroupPage({ params }: { params: Promise<{ id: stri
 
   const list = ((events ?? []) as EventRow[]).map((e) => ({ ...e, status: eventStatus(e, group.timezone) }));
   const sections = (["Live", "Upcoming", "Revealed"] as const)
+    // Upcoming soonest first; live and revealed newest first.
     .map((label) => ({ label, items: list.filter((e) => e.status.label === label) }))
+    .map((s) => (s.label === "Upcoming" ? { ...s, items: [...s.items].reverse() } : s))
     .filter((s) => s.items.length);
 
   let invite: string | null = null;
@@ -54,6 +56,19 @@ export default async function GroupPage({ params }: { params: Promise<{ id: stri
     const h = await headers();
     invite = `${h.get("x-forwarded-proto") ?? "http"}://${h.get("host")}/join/${group.invite_code}`;
   }
+
+  const row = (e: (typeof list)[number]) => (
+    <Link key={e.id} className="trip" href={`/events/${e.id}`}>
+      <span>
+        <strong>{e.name}</strong>
+        <span className="muted small">
+          {TYPES[e.type].label} · {formatWhen(e)}
+          {e.status.sub ? ` · ${e.status.sub}` : ""}
+        </span>
+      </span>
+      {reported.has(e.id) && <span className="pill orange">Reported</span>}
+    </Link>
+  );
 
   return (
     <>
@@ -84,23 +99,13 @@ export default async function GroupPage({ params }: { params: Promise<{ id: stri
           sections.map((s) => (
             <div key={s.label} className="stack">
               <span className="label">{s.label}</span>
-              <div className="trips">
-                {s.items.map((e) => (
-                  <Link key={e.id} className="trip" href={`/events/${e.id}`}>
-                    <span>
-                      <strong>{e.name}</strong>
-                      <span className="muted small">
-                        {TYPES[e.type].label} · {formatWhen(e)}
-                        {e.status.sub ? ` · ${e.status.sub}` : ""}
-                      </span>
-                    </span>
-                    <span className="row">
-                      {reported.has(e.id) && <span className="pill orange">Reported</span>}
-                      <span className={`pill ${e.status.tone}`}>{e.status.label}</span>
-                    </span>
-                  </Link>
-                ))}
-              </div>
+              <div className="trips">{s.items.slice(0, s.label === "Revealed" ? 3 : undefined).map(row)}</div>
+              {s.label === "Revealed" && s.items.length > 3 && (
+                <details className="field">
+                  <summary className="link">Older ({s.items.length - 3})</summary>
+                  <div className="trips">{s.items.slice(3).map(row)}</div>
+                </details>
+              )}
             </div>
           ))
         ) : (
@@ -114,9 +119,9 @@ export default async function GroupPage({ params }: { params: Promise<{ id: stri
       {!me.away_card_path && (
         <section className="card t-lime">
           <h2>Add your away card</h2>
-          <p className="muted small">A selfie that fills your slot if you miss a Roll Call.</p>
+          <p className="muted small">A selfie that fills your slot if you miss a Roll Call. One for all your groups, in your profile.</p>
           <div className="row">
-            <Link className="button ghost" href={`/groups/${group.id}/people#away`}>Add yours</Link>
+            <Link className="button ghost" href="/me#away">Add yours</Link>
           </div>
         </section>
       )}

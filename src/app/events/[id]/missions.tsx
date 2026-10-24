@@ -117,7 +117,7 @@ export function Missions({
     const supabase = createClient();
     const { error } = await supabase.from("photos").delete().eq("id", s.id);
     if (error) return setError("Couldn't delete it. Try again.");
-    await supabase.storage.from("photos").remove([s.storage_path]);
+    await discard(s.storage_path);
     router.refresh();
   }
 

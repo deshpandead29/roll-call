@@ -2,7 +2,7 @@
 // the Roll Call look, upload it to the private photos bucket. The caller then
 // records the row (directly, or through a Roll Call function).
 
-import { develop, handDate, loadImage, toJpeg } from "@/lib/develop";
+import { develop, handDate, loadImage, negativeCanvas, toJpeg } from "@/lib/develop";
 import { createClient } from "@/lib/supabase/client";
 
 export type Printed = { id: string; path: string };
@@ -30,13 +30,18 @@ export async function printAndUpload(
   });
   const blob = await toJpeg(canvas);
   const path = `${o.eventId}/${o.memberId}/${id}.jpg`;
-  const up = await createClient().storage.from("photos").upload(path, blob, { contentType: "image/jpeg" });
+  const supabase = createClient();
+  const up = await supabase.storage.from("photos").upload(path, blob, { contentType: "image/jpeg" });
   if (up.error) throw new Error("Couldn't upload it. Check your signal and try again.");
+  // The group's view of it until the reveal. A shot without one still counts.
+  const neg = await new Promise<Blob | null>((resolve) => negativeCanvas(img).toBlob(resolve, "image/jpeg", 0.7));
+  if (neg) await supabase.storage.from("negatives").upload(path, neg, { contentType: "image/jpeg" }).catch(() => {});
   return { id, path };
 }
 
 export async function discard(path: string) {
-  await createClient().storage.from("photos").remove([path]);
+  const supabase = createClient();
+  await Promise.all([supabase.storage.from("photos").remove([path]), supabase.storage.from("negatives").remove([path])]);
 }
 
 export { hhmm } from "@/lib/events";

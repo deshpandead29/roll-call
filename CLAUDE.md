@@ -4,7 +4,7 @@ Read this first. It records what's been decided, why, and what's left to build. 
 
 ## What it is
 
-A shared camera for a friend group. When someone calls roll, everyone's phone asks them to shoot the same moment from where they are. Short challenges fill the gaps. Every shot stays hidden (shown to its owner only as a film negative) until the reveal the next day, when the group sees everything side by side.
+A shared camera for a friend group. When someone calls roll, everyone's phone asks them to shoot the same moment from where they are. Short challenges fill the gaps. Every shot stays hidden (the group sees only small film negatives) until the reveal the next day, when the group sees everything side by side.
 
 The problem it solves: the one or two people who take all the photos never appear in them, and nobody sees the night from anyone else's angle.
 
@@ -55,18 +55,20 @@ Closest competitors: POV and Lense (shared event cameras with delayed reveal), B
 
 ### Away cards
 
-Made once per group: a selfie, shown greyscale with pink stripes and an "away" pill. In the reveal it fills a missed slot with a reason: "snoozed", "home by 22:10" or "missed it". Away cards never count as answers.
+Made once, in your profile, and used in every group you're in: a selfie, shown greyscale with pink stripes and an "away" pill. In the reveal it fills a missed slot with a reason: "snoozed", "home by 22:10" or "missed it". Away cards never count as answers.
 
 ## Challenges
 
 Full lists: `docs/challenges.md`. Recreate list with copyright notes: `docs/recreate-challenges.xlsx`.
 
 - **Trip shared shot:** same prompt for everyone that day.
-- **Trip hunt:** the theme rotates daily (colour, letter, shape, texture, number) in a per-trip shuffled order, so colour isn't every day. Everyone gets a different target. Letters spell the trip name when its letter count equals the group size, otherwise a word sized to the group. Numbers count 1 to N together. The reveal lays letters and numbers out in order, with dashed holes for misses.
+- **Trip hunt:** the theme rotates daily (colour, letter, shape, texture, number) in a per-trip shuffled order, so colour isn't every day. Everyone gets a different target. Letters spell a word the trip's maker types when creating it (up to one letter per person; anyone left over finds their initial). If they skip it: the trip name when its letter count equals the group size, otherwise a word sized to the group. Numbers count 1 to N together. The reveal lays letters and numbers out in order, with dashed holes for misses.
 - **Trip wildcard:** the category rotates by (day + person): people, lens, nerve, story. People prompts name a friend via a shuffled ring per day, so nobody targets themselves and everyone gets targeted. One swap per day.
 - **Non-trip events:** one challenge each from the event's deck. `{b}` becomes the honoree's name. One swap.
 - **Recreate:** on trips every other day (days 1, 3, 5…), otherwise once per event. A seeded "director" sees it; they pick how many people they can round up, and get a matching painting, film scene or meme. Paintings show the public-domain original in the app and side by side in the reveal. Films, TV, memes and album covers are words only (copyright).
 - Challenge assignment is deterministic, seeded by event id, day and person, so every device computes the same missions without storing them.
+- **Tone: challenges are the hook, so they have to be funny.** Each one is printed as the photo's caption, so it works like a Cards Against Humanity black card: the prompt sets up the joke, the photo lands it ("The reason we're not allowed back", "{f}'s villain origin story"). Specific, current and a bit cheeky; never generic ("A fun moment"), never cruel about strangers, nothing dangerous or illegal. Under 45 characters.
+- **Season list:** a few trend prompts (`SEASON` in `src/lib/missions.ts`) mix into the night-out deck and the trip nerve wildcards. Trends date fast, so refresh it every couple of months. TikTok and Instagram don't offer open trend data, so this comes from reading what's current.
 
 ## The photo look
 
@@ -76,7 +78,7 @@ Implemented in `develop()` in the prototype. Applied client-side at capture, bef
 - Grade (per pixel): centre-weighted flash gain (1.12 − 0.36·d²), saturation ×1.1–1.16, contrast ×1.13, cooler shadows and slightly neutral highlights, a small black crush, red/blue channel offset growing to the edges (chromatic aberration), and digital luma and chroma noise. Then a soft bloom: a 1/16-size copy screened on top at 20%.
 - Caption: the challenge text, lowercase, in Excalifont, with a rough.js underline in the mission colour. Meta line: "name · date · time · #frame". A small pink "roll call" sticker bottom right.
 - Mission colours: shared shot #3A57FF, hunt #FF7A1F, wildcard #FF4F9A, night/birthday/big-day challenge #FF7A1F, recreate #7A4FD0, Roll Call #16151A.
-- Until the reveal, your own shots appear only as orange negatives (CSS invert + sepia + hue-rotate) on a film strip. The reveal plays a staggered negative-to-positive develop animation, respecting reduced motion.
+- Until the reveal, your own shots appear only as orange negatives (CSS invert + sepia + hue-rotate) on a film strip. Everyone else's appear on the event as tiny negatives (45×60, inverted and tinted at capture, stored in the `negatives` bucket), enough to see who's shooting, not what. The reveal plays a staggered negative-to-positive develop animation, respecting reduced motion.
 
 Test it on real faces before shipping. The flash grade has only been checked on stock photos.
 
@@ -85,7 +87,7 @@ Test it on real faces before shipping. The flash grade has only been checked on 
 Research behind these is in `docs/research.md`.
 
 - Short and plain. Buttons are one or two words: Shoot, Swap, Snooze 1h, Going home, Reveal now, Back it.
-- No slang, no jokes that have to land, no exclamation marks, no talking like the user's best friend.
+- No slang, no jokes that have to land, no exclamation marks, no talking like the user's best friend. This is for the app's own words (buttons, notices, errors). Challenges are the exception, below.
 - Status tags only for real status, as short adjectives in one style: Live, Upcoming, Revealed, plus "late" and "away" in the reveal. No decorative stickers.
 - Names are added as chips (type, Enter; Backspace removes the last; pasted comma lists split). People can also join a group from its link.
 - Current headline: "Every angle, all at once." Subline: "Call roll and everyone shoots the same moment. You see it all the next day." This is a placeholder. The owner isn't sold on it; earlier candidates were "Every angle of the night" (rejected: excludes daytime events) and "The group camera" (rejected: says nothing).
@@ -106,7 +108,12 @@ Research in `docs/research.md` (layout and navigation). Rules that keep pages li
 - Each page has one job and one primary button. Home: your groups (New group). Group: its events (New event). Live event: Call roll and your challenges.
 - Forms get their own page: `/groups/new`, `/groups/[id]/events/new`, `/me`. Never stack a create form under a list.
 - Setup shows up only while it's needed: the invite card on a group until someone else joins, the away-card nudge until you've added one, the alerts prompt until alerts are on (full help on home, a one-line prompt on events).
-- Secondary information folds: "So far" (shot tally, calls, who's snoozed or home) and "Event details" (who's coming, pace, reveal time, host, Reveal now, Delete). People, invites and away cards live on `/groups/[id]/people`.
+- Secondary information folds or moves: "So far" (everyone's negatives, calls, who's snoozed or home) sits low on the event page, and Event details (who's coming, pace, reveal time, host, Reveal now, Delete) is its own page, `/events/[id]/details`, linked top right. People and invites live on `/groups/[id]/people`. Your name, away card, alerts and account live on your profile, `/me`, reached from the round photo on home.
+- Home answers "what's on": a Now card (live, starting this week, revealed in the last three days), then groups sorted by activity, each with one line on what's next.
+- Lists stay short: a group shows its three latest reveals and folds the rest under "Older"; "So far" lists people with shots and puts everyone else on one line; People is a compact list, not a wall of away cards.
+- First-timers get a quick setup at `/welcome` straight after signing up: their name, then an optional away-card selfie (people joining from an invite give their name on the invite, so they only see the selfie step). Then a three-line "How it works" card on their first event, once per device.
+- Hosts change an event at `/events/[id]/edit` (from Details): name, dates, who's coming, honoree, pace, letter-day word; only the name after the reveal. Anyone who's already shot stays on. Guests can leave an event from Details before the reveal; their shots from it go too.
+- When an event reveals, everyone on it gets "Lisbon is out".
 - No more than two levels: a page plus one fold or one linked page.
 
 ## Build plan
