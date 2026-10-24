@@ -21,6 +21,7 @@ export function RevealNow({ eventId }: { eventId: string }) {
       .eq("id", eventId);
     setBusy(false);
     if (error) return setError("Couldn't reveal it. Try again.");
+    fetch("/api/push/reveals", { method: "POST" }).catch(() => {});
     router.refresh();
   }
 

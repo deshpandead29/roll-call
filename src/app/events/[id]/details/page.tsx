@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { formatWhen, PACES, paceSummary, TYPES, type EventType, type Pace } from "@/lib/events";
 import { createClient } from "@/lib/supabase/server";
 import { DeleteEvent } from "../delete-event";
+import { LeaveEvent } from "../leave-event";
 import { RevealNow } from "../reveal-now";
 
 export const metadata = { title: "Event details · Roll Call" };
@@ -44,6 +45,7 @@ export default async function EventDetailsPage({ params }: { params: Promise<{ i
   const coming = (comingRows ?? []).map((c) => people.find((m) => m.id === c.member_id)).filter((m) => !!m);
   const host = people.find((m) => m.id === ev.host_member_id);
   const isHost = !!host && host.user_id === auth.claims.sub;
+  const meOnIt = coming.find((m) => m.user_id === auth.claims.sub);
   const T = TYPES[ev.type];
   const honoree = nameOf(ev.honoree_member_id);
   const reveal = new Date(ev.reveal_at).toLocaleString("en-GB", {
@@ -104,8 +106,15 @@ export default async function EventDetailsPage({ params }: { params: Promise<{ i
             </>
           )}
         </dl>
-        {isHost && !ev.revealed && <RevealNow eventId={ev.id} />}
+        {isHost && (
+          <div className="row">
+            <Link className="button ghost" href={`/events/${ev.id}/edit`}>Edit</Link>
+            {!ev.revealed && <RevealNow eventId={ev.id} />}
+          </div>
+        )}
       </section>
+
+      {!isHost && meOnIt && !ev.revealed && <LeaveEvent eventId={ev.id} memberId={meOnIt.id} name={ev.name} />}
 
       {isHost && <DeleteEvent eventId={ev.id} groupId={ev.group_id} />}
     </>

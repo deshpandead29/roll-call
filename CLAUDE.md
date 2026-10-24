@@ -111,7 +111,9 @@ Research in `docs/research.md` (layout and navigation). Rules that keep pages li
 - Secondary information folds or moves: "So far" (everyone's negatives, calls, who's snoozed or home) sits low on the event page, and Event details (who's coming, pace, reveal time, host, Reveal now, Delete) is its own page, `/events/[id]/details`, linked top right. People and invites live on `/groups/[id]/people`. Your name, away card, alerts and account live on your profile, `/me`, reached from the round photo on home.
 - Home answers "what's on": a Now card (live, starting this week, revealed in the last three days), then groups sorted by activity, each with one line on what's next.
 - Lists stay short: a group shows its three latest reveals and folds the rest under "Older"; "So far" lists people with shots and puts everyone else on one line; People is a compact list, not a wall of away cards.
-- First-timers get a three-line "How it works" card on the event, once per device.
+- First-timers get a quick setup at `/welcome` straight after signing up: their name, then an optional away-card selfie (people joining from an invite give their name on the invite, so they only see the selfie step). Then a three-line "How it works" card on their first event, once per device.
+- Hosts change an event at `/events/[id]/edit` (from Details): name, dates, who's coming, honoree, pace, letter-day word; only the name after the reveal. Anyone who's already shot stays on. Guests can leave an event from Details before the reveal; their shots from it go too.
+- When an event reveals, everyone on it gets "Lisbon is out".
 - No more than two levels: a page plus one fold or one linked page.
 
 ## Build plan

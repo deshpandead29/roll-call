@@ -261,3 +261,4 @@ details.card:not([open]){padding-bottom:22px}
 .people li{display:grid;grid-template-columns:40px 1fr auto;gap:12px;align-items:center;padding:8px 0;border-top:2px dashed var(--line)}
 .people li:first-child{border-top:0}
 .people .avatar{width:40px;height:40px}
+.chip[aria-disabled="true"]{opacity:.6;cursor:default}

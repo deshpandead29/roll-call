@@ -10,6 +10,17 @@ async function awayImage(file: File): Promise<Blob> {
   return new Promise<Blob>((resolve, reject) => c.toBlob((b) => (b ? resolve(b) : reject(new Error("encode"))), "image/jpeg", 0.8));
 }
 
+// Uploads a selfie as your away card and uses it in every group.
+export async function saveAwayCard(userId: string, file: File) {
+  const blob = await awayImage(file);
+  const supabase = createClient();
+  const path = `u/${userId}/${Date.now()}.jpg`;
+  const up = await supabase.storage.from("away-cards").upload(path, blob, { contentType: "image/jpeg" });
+  if (up.error) throw up.error;
+  const { error } = await supabase.rpc("set_my_away_card", { p_path: path });
+  if (error) throw error;
+}
+
 // One away card for all your groups. The old file is cleaned up by the sweep.
 export function AwayForm({ userId, hasCard }: { userId: string; hasCard: boolean }) {
   const router = useRouter();
@@ -24,13 +35,7 @@ export function AwayForm({ userId, hasCard }: { userId: string; hasCard: boolean
     setBusy(true);
     setError("");
     try {
-      const blob = await awayImage(file);
-      const supabase = createClient();
-      const path = `u/${userId}/${Date.now()}.jpg`;
-      const up = await supabase.storage.from("away-cards").upload(path, blob, { contentType: "image/jpeg" });
-      if (up.error) throw up.error;
-      const { error } = await supabase.rpc("set_my_away_card", { p_path: path });
-      if (error) throw error;
+      await saveAwayCard(userId, file);
       router.refresh();
     } catch {
       setError("Couldn't save it. Try another photo.");

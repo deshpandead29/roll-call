@@ -46,7 +46,7 @@ export function JoinForm({
     });
     setBusy(false);
     if (!error) {
-      router.replace(`/groups/${data}`);
+      router.replace(`/welcome?step=card&next=${encodeURIComponent(`/groups/${data}`)}`);
       router.refresh();
     } else if (error.code === "23505") {
       setError(claim ? "Someone already joined as that name." : "That name's taken. If it's you, pick it above.");

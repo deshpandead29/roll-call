@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { AlertsSetup } from "@/components/alerts-setup";
 import { HeroCollage } from "@/components/hero-collage";
 import { ProfileLink } from "@/components/profile-link";
@@ -40,6 +41,10 @@ export default async function Home() {
       </section>
     );
   }
+
+  // New here: set up a name (and an away card) first.
+  const { data: profile } = await supabase.from("profiles").select("display_name").eq("user_id", claims.sub).maybeSingle();
+  if (!profile?.display_name) redirect("/welcome?next=%2F");
 
   const [{ data: groups }, { data: eventRows }] = await Promise.all([
     supabase.from("groups").select("id, name, created_at, group_members(count)").order("created_at", { ascending: false }),
