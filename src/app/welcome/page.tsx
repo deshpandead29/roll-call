@@ -18,5 +18,11 @@ export default async function WelcomePage({ searchParams }: { searchParams: Prom
   const hasName = !!profile?.display_name;
   if (hasName && (params.step !== "card" || profile?.away_card_path)) redirect(next);
 
-  return <WelcomeFlow userId={auth.claims.sub} next={next} name={profile?.display_name ?? ""} startAt={hasName ? "card" : "name"} />;
+  return <WelcomeFlow
+      userId={auth.claims.sub}
+      next={next}
+      name={profile?.display_name ?? ""}
+      startAt={hasName ? "card" : "name"}
+      isAnonymous={!!auth.claims.is_anonymous}
+    />;
 }

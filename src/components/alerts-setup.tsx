@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import Link from "next/link";
+import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
-type Mode = "loading" | "ask" | "on" | "blocked" | "install" | "old-ios" | "unsupported";
+export type Mode = "loading" | "ask" | "on" | "blocked" | "install" | "old-ios" | "unsupported";
 
 const KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
 
@@ -35,8 +36,23 @@ function detect(): Mode {
 // Turns on Roll Call alerts for this device, or explains how on iPhone.
 // The home page carries the full help (install steps, blocked, old iOS); the
 // event page only offers the one-tap "Turn on", so it never nags mid-event.
-export function AlertsSetup({ isAnonymous, compact = false }: { isAnonymous: boolean; compact?: boolean }) {
+export function AlertsSetup({
+  isAnonymous,
+  compact = false,
+  onMode,
+}: {
+  isAnonymous: boolean;
+  compact?: boolean;
+  // Tells the welcome flow when there's nothing to ask (already on, or this
+  // browser can't do push), so it can move on.
+  onMode?: (mode: Mode) => void;
+}) {
   const [mode, setMode] = useState<Mode>("loading");
+  // Latest callback without re-running the setup effect.
+  const report = useRef(onMode);
+  useEffect(() => {
+    report.current = onMode;
+  });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
@@ -56,8 +72,15 @@ export function AlertsSetup({ isAnonymous, compact = false }: { isAnonymous: boo
           m = "ask";
         }
       }
-      if (!cancelled) setMode(m);
-    })().catch(() => !cancelled && setMode("unsupported"));
+      if (!cancelled) {
+        setMode(m);
+        report.current?.(m);
+      }
+    })().catch(() => {
+      if (cancelled) return;
+      setMode("unsupported");
+      report.current?.("unsupported");
+    });
     return () => {
       cancelled = true;
     };
@@ -78,6 +101,7 @@ export function AlertsSetup({ isAnonymous, compact = false }: { isAnonymous: boo
         (await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(KEY!) }));
       await save(sub);
       setMode("on");
+      report.current?.("on");
     } catch {
       setError("Couldn't turn alerts on. Try again.");
     } finally {
@@ -87,6 +111,15 @@ export function AlertsSetup({ isAnonymous, compact = false }: { isAnonymous: boo
 
   if (!KEY || mode === "loading" || mode === "on" || mode === "unsupported") return null;
   if (compact) {
+    // iPhone in Safari can't buzz at all until Roll Call is on the home
+    // screen, so say so wherever people land, with the steps one tap away.
+    if (mode === "install")
+      return (
+        <div className="notice row">
+          <span>This iPhone won&apos;t buzz for Roll Calls until Roll Call is on your home screen.</span>
+          <Link className="link small" href="/me#alerts">How</Link>
+        </div>
+      );
     if (mode !== "ask") return null;
     return (
       <div className="notice row">
@@ -98,7 +131,7 @@ export function AlertsSetup({ isAnonymous, compact = false }: { isAnonymous: boo
   }
 
   return (
-    <section className="card t-blue">
+    <section className="card t-blue" id="alerts">
       <h2>Alerts</h2>
       {mode === "ask" && (
         <>

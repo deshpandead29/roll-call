@@ -37,6 +37,8 @@ Needs Docker. `npx supabase start` applies `supabase/migrations`, uses the auth 
 
 Profiles (`20261027000000_profile.sql`): one name and one away card per person. `set_my_name()` and `set_my_away_card()` update every group you're in; making or joining a group copies them in. Profile cards are stored at `away-cards/u/{user_id}/`.
 
+Start-day alerts (`20261031000000_start_push.sql`): "Sam's 30th is today", once, from 09:00 local on the first day, sent the same three ways as reveal alerts.
+
 Reveal alerts (`20261030000000_reveal_push.sql`): "Lisbon is out" goes to everyone on an event once it reveals. Whichever comes first sends it, once: the host pressing Reveal now, anyone in the group opening the app after the reveal time, or the daily Vercel cron in `vercel.json` (needs `CRON_SECRET` in Vercel and the same value in `private.secrets`).
 
 Letter-day word (`20261029000000_hunt_word.sql`): `events.hunt_word`, set by the host when creating a trip; `event_details` is rebuilt to include it.

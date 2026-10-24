@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
+import { AlertsSetup } from "@/components/alerts-setup";
 import { eventStatus, formatWhen, TYPES, type EventType, type Pace } from "@/lib/events";
 import { createClient } from "@/lib/supabase/server";
 import { InviteLink } from "./invite-link";
@@ -84,6 +85,8 @@ export default async function GroupPage({ params }: { params: Promise<{ id: stri
           {joined < people.length ? ` · ${joined} joined` : ""}
         </p>
       </section>
+
+      <AlertsSetup isAnonymous={!!auth.claims.is_anonymous} compact />
 
       {invite && (
         <section className="card t-blue">
