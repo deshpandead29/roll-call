@@ -10,10 +10,12 @@ import { createClient } from "@/lib/supabase/server";
 
 type Target = { endpoint: string; keys: { p256dh: string; auth: string }; event_id: string; event_name: string };
 
+const configured = () => !!process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY && !!process.env.VAPID_PRIVATE_KEY;
+const notConfigured = () => NextResponse.json({ sent: 0, reason: "push not configured" }, { status: 503 });
+
 async function send(request: NextRequest, targets: Target[]) {
-  const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-  const privateKey = process.env.VAPID_PRIVATE_KEY;
-  if (!publicKey || !privateKey) return NextResponse.json({ sent: 0, reason: "push not configured" }, { status: 503 });
+  const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!;
+  const privateKey = process.env.VAPID_PRIVATE_KEY!;
   const origin = request.nextUrl.origin;
   webpush.setVapidDetails(process.env.VAPID_SUBJECT || (origin.startsWith("https://") ? origin : "mailto:dev@example.com"), publicKey, privateKey);
   const results = await Promise.allSettled(
@@ -28,7 +30,9 @@ async function send(request: NextRequest, targets: Target[]) {
   return NextResponse.json({ sent: results.filter((r) => r.status === "fulfilled").length, failed: results.filter((r) => r.status === "rejected").length });
 }
 
+// Checked before claiming, so a reveal is never marked as announced unsent.
 export async function POST(request: NextRequest) {
+  if (!configured()) return notConfigured();
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("reveal_push_targets");
   if (error) return NextResponse.json({ error: error.message }, { status: 403 });
@@ -39,6 +43,7 @@ export async function GET(request: NextRequest) {
   const secret = process.env.CRON_SECRET;
   if (!secret) return NextResponse.json({ sent: 0, reason: "cron not configured" }, { status: 503 });
   if (request.headers.get("authorization") !== `Bearer ${secret}`) return NextResponse.json({ error: "unauthorised" }, { status: 401 });
+  if (!configured()) return notConfigured();
   const supabase = createAnon(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!, { auth: { persistSession: false } });
   const { data, error } = await supabase.rpc("due_reveal_push_targets", { p_secret: secret });
   if (error) return NextResponse.json({ error: error.message }, { status: 403 });
