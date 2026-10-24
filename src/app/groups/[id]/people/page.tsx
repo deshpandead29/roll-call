@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
-import { AwayCard } from "@/components/away-card";
 import { createClient } from "@/lib/supabase/server";
 import { AddNamesForm } from "../add-names-form";
 import { InviteLink } from "../invite-link";
@@ -36,6 +35,19 @@ export default async function PeoplePage({ params }: { params: Promise<{ id: str
   const origin = `${h.get("x-forwarded-proto") ?? "http"}://${h.get("host")}`;
   const notJoined = people.filter((m) => !m.user_id).map((m) => m.display_name);
 
+  // Up top while people still need to join; below the list once everyone has.
+  const invite = (
+    <section className="card t-blue">
+      <h2>Invite</h2>
+      <p className="muted small">
+        Anyone with this link can join {group.name}.
+        {notJoined.length > 0 && ` Not joined yet: ${notJoined.join(", ")}.`}
+      </p>
+      <InviteLink url={`${origin}/join/${group.invite_code}`} groupName={group.name} />
+      <AddNamesForm groupId={group.id} />
+    </section>
+  );
+
   return (
     <>
       <div className="top">
@@ -48,32 +60,34 @@ export default async function PeoplePage({ params }: { params: Promise<{ id: str
         </p>
       </section>
 
-      <section className="card t-blue">
-        <h2>Invite</h2>
-        <p className="muted small">Anyone with this link can join {group.name}.</p>
-        <InviteLink url={`${origin}/join/${group.invite_code}`} groupName={group.name} />
-        {notJoined.length > 0 && <p className="muted small">Not joined yet: {notJoined.join(", ")}.</p>}
-        <AddNamesForm groupId={group.id} />
-      </section>
+      {notJoined.length > 0 && invite}
 
       <section className="card" id="away">
-        <h2>Away cards</h2>
-        <p className="muted small">Each person&apos;s selfie fills their slot when they miss a Roll Call.</p>
-        <div className="aways">
-          {people.map((m) => (
-            <AwayCard
-              key={m.id}
-              name={m.display_name}
-              url={m.away_card_path ? awayUrls.get(m.away_card_path) : null}
-              reason={m.id === me.id ? "you" : undefined}
-            />
-          ))}
-        </div>
-        <div className="row">
-          <Link className="button ghost" href="/me#away">{me.away_card_path ? "Change yours" : "Add yours"}</Link>
-          <span className="muted small">in your profile</span>
-        </div>
+        <h2>Everyone</h2>
+        <ul className="people">
+          {people.map((m) => {
+            const url = m.away_card_path ? awayUrls.get(m.away_card_path) : null;
+            return (
+              <li key={m.id}>
+                <span className="avatar" aria-hidden="true">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  {url ? <img src={url} alt="" /> : (m.display_name[0] ?? "?").toUpperCase()}
+                </span>
+                <span>{m.display_name}</span>
+                <span className="muted small">
+                  {m.id === me.id ? "you" : !m.user_id ? "not joined" : !m.away_card_path ? "no away card" : ""}
+                </span>
+              </li>
+            );
+          })}
+        </ul>
+        <p className="muted small">
+          Away cards fill someone&apos;s slot when they miss a Roll Call.{" "}
+          <Link className="link" href="/me#away">{me.away_card_path ? "Change yours" : "Add yours"}</Link>
+        </p>
       </section>
+
+      {notJoined.length === 0 && invite}
 
       <LeaveGroup groupId={group.id} groupName={group.name} last={people.filter((m) => m.user_id).length === 1} />
     </>

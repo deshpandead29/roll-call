@@ -109,6 +109,9 @@ Research in `docs/research.md` (layout and navigation). Rules that keep pages li
 - Forms get their own page: `/groups/new`, `/groups/[id]/events/new`, `/me`. Never stack a create form under a list.
 - Setup shows up only while it's needed: the invite card on a group until someone else joins, the away-card nudge until you've added one, the alerts prompt until alerts are on (full help on home, a one-line prompt on events).
 - Secondary information folds or moves: "So far" (everyone's negatives, calls, who's snoozed or home) sits low on the event page, and Event details (who's coming, pace, reveal time, host, Reveal now, Delete) is its own page, `/events/[id]/details`, linked top right. People and invites live on `/groups/[id]/people`. Your name, away card, alerts and account live on your profile, `/me`, reached from the round photo on home.
+- Home answers "what's on": a Now card (live, starting this week, revealed in the last three days), then groups sorted by activity, each with one line on what's next.
+- Lists stay short: a group shows its three latest reveals and folds the rest under "Older"; "So far" lists people with shots and puts everyone else on one line; People is a compact list, not a wall of away cards.
+- First-timers get a three-line "How it works" card on the event, once per device.
 - No more than two levels: a page plus one fold or one linked page.
 
 ## Build plan

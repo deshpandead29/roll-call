@@ -16,6 +16,7 @@ import {
 } from "@/lib/missions";
 import { createClient } from "@/lib/supabase/server";
 import { buildReveal } from "./build-reveal";
+import { HowItWorks } from "./how-it-works";
 import { JoinEvent } from "./join-event";
 import { Reports, type Report } from "./reports";
 import { RevealView } from "./reveal";
@@ -62,7 +63,17 @@ export default async function EventPage({
   if (!row) notFound();
   const ev = row as EventDetail;
 
-  const [{ data: group }, { data: groupMembers }, { data: comingRows }, { data: host }, { data: counts }, { data: photoRows }, { data: roll }] = await Promise.all([
+  const [
+    { data: group },
+    { data: groupMembers },
+    { data: comingRows },
+    { data: host },
+    { data: counts },
+    { data: photoRows },
+    { data: roll },
+    { data: swapRows },
+    { data: negRows },
+  ] = await Promise.all([
     supabase.from("groups").select("name, created_by").eq("id", ev.group_id).single(),
     supabase.from("group_members").select("id, display_name, user_id").eq("group_id", ev.group_id),
     supabase.from("event_members").select("member_id, joined_at, group_members(display_name, user_id, created_at, away_card_path)").eq("event_id", id),
@@ -73,6 +84,9 @@ export default async function EventPage({
     // Before the reveal, RLS returns only your own.
     supabase.from("photos").select("id, kind, day, frame, storage_path, member_id").eq("event_id", id).order("created_at"),
     supabase.rpc("roll_state", { p_event_id: id }),
+    supabase.from("swaps").select("member_id, day, count").eq("event_id", id),
+    // Which shots exist (not what they are), for everyone's negatives.
+    ev.revealed ? Promise.resolve({ data: [] }) : supabase.rpc("event_negatives", { p_event_id: id }),
   ]);
 
   // Join order, the same on every device, so missions match. People who join
@@ -118,9 +132,7 @@ export default async function EventPage({
   const i = me ? coming.indexOf(me) : -1;
 
   // One swap a day on trips, one per event otherwise (stored against the day).
-  const { data: swapRow } = me
-    ? await supabase.from("swaps").select("*").eq("event_id", ev.id).eq("member_id", me.id).eq("day", day).maybeSingle()
-    : { data: null };
+  const swapRow = (swapRows ?? []).find((x) => x.member_id === me?.id && x.day === day);
   const sw = Math.min(swapRow?.count ?? 0, 1);
 
   let missions: Mission[] = [];
@@ -154,14 +166,20 @@ export default async function EventPage({
 
   // My shots for this day, shown as negatives.
   const mine = (photoRows ?? []).filter((p) => p.member_id === me?.id && (p.day === day || p.kind === "roll"));
+  // Everyone's shots as negatives while it's live. Shots from before
+  // negatives existed show as a blank frame.
+  const negRowsLive = status.label === "Live" ? ((negRows ?? []) as { id: string; member_id: string }[]) : [];
+  const negPaths = negRowsLive.map((x) => `${ev.id}/${x.member_id}/${x.id}.jpg`);
+  const [mineSigned, negSigned] = await Promise.all([
+    mine.length ? supabase.storage.from("photos").createSignedUrls(mine.map((p) => p.storage_path), 60 * 60) : Promise.resolve({ data: [] }),
+    negPaths.length ? supabase.storage.from("negatives").createSignedUrls(negPaths, 60 * 60) : Promise.resolve({ data: [] }),
+  ]);
   const urls = new Map<string, string>();
-  if (mine.length) {
-    const { data } = await supabase.storage.from("photos").createSignedUrls(
-      mine.map((p) => p.storage_path),
-      60 * 60,
-    );
-    data?.forEach((d) => d.path && d.signedUrl && urls.set(d.path, d.signedUrl));
-  }
+  mineSigned.data?.forEach((d) => d.path && d.signedUrl && urls.set(d.path, d.signedUrl));
+  const negatives = negRowsLive.map((x, k) => {
+    const d = negSigned.data?.[k];
+    return { ...x, url: d && !d.error ? d.signedUrl : null };
+  });
   const shots: Shot[] = mine.map((p) => ({
     id: p.id,
     kind: p.kind,
@@ -175,16 +193,6 @@ export default async function EventPage({
   const countOf = new Map(((counts ?? []) as { member_id: string; shots: number }[]).map((c) => [c.member_id, c.shots]));
   const total = coming.reduce((n, m) => n + (countOf.get(m.id) ?? 0), 0);
 
-  // Everyone's shots as negatives while it's live. Shots from before
-  // negatives existed show as a blank frame.
-  let negatives: { id: string; member_id: string; url: string | null }[] = [];
-  if (status.label === "Live") {
-    const { data: negRows } = await supabase.rpc("event_negatives", { p_event_id: ev.id });
-    const rows = (negRows ?? []) as { id: string; member_id: string }[];
-    const paths = rows.map((x) => `${ev.id}/${x.member_id}/${x.id}.jpg`);
-    const signed = paths.length ? (await supabase.storage.from("negatives").createSignedUrls(paths, 60 * 60)).data : [];
-    negatives = rows.map((x, k) => ({ ...x, url: signed?.[k]?.error ? null : (signed?.[k]?.signedUrl ?? null) }));
-  }
 
   // What happened so far, from roll_state: calls with answer counts, and
   // who's snoozed or home right now.
@@ -258,8 +266,9 @@ export default async function EventPage({
       ) : (
         <>
           <AlertsSetup isAnonymous={!!auth.claims.is_anonymous} compact />
+          <HowItWorks reveal={reveal} trip={ev.type === "trip"} />
 
-          {notJoined.length > 0 && (
+          {isHost && notJoined.length > 0 && (
             <div className="notice">
               <span>
                 {notJoined.join(", ")} {notJoined.length === 1 ? "hasn't" : "haven't"} joined yet, so won&apos;t get Roll Calls.
@@ -344,7 +353,7 @@ export default async function EventPage({
             <span className="big">{total}</span>
           </div>
           <p className="muted small">Everyone&apos;s negatives. They develop at the reveal.</p>
-          {coming.map((m) => {
+          {coming.filter((m) => (countOf.get(m.id) ?? 0) > 0).map((m) => {
             const n = countOf.get(m.id) ?? 0;
             const negs = negatives.filter((x) => x.member_id === m.id);
             return (
@@ -371,6 +380,15 @@ export default async function EventPage({
               </div>
             );
           })}
+          {coming.some((m) => !countOf.get(m.id)) && (
+            <p className="muted small roll-row">
+              No shots yet:{" "}
+              {coming
+                .filter((m) => !countOf.get(m.id))
+                .map((m) => (m.id === me?.id ? "you" : m.display_name) + (m.user_id ? "" : " (not joined)"))
+                .join(", ")}
+            </p>
+          )}
           {(snoozed.length > 0 || gone.length > 0) && (
             <p className="muted small">
               {snoozed.length > 0 && `Snoozed: ${snoozed.join(", ")}`}
