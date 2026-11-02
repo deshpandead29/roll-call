@@ -21,6 +21,7 @@ export function Recreate({
   director,
   present,
   nextFrame,
+  userId,
   disabled,
   shots,
 }: {
@@ -34,6 +35,7 @@ export function Recreate({
   director: string;
   present: number;
   nextFrame: number;
+  userId: string;
   disabled: boolean;
   shots: { id: string; frame: number | null; url: string | null }[];
 }) {
@@ -57,11 +59,12 @@ export function Recreate({
       const photo = await saveCapture(file, {
         eventId, memberId, frame: nextFrame, who: myName, today,
         mission: r.title, accent: ACCENT.recreate,
-      }, { type: "photo", row: { day, kind: "recreate", mission: r.title, recreate_id: r.id, starring: count } });
+      }, { type: "photo", row: { day, kind: "recreate", mission: r.title, recreate_id: r.id, starring: count } }, userId);
       setNote("Saved on this device. Uploading…");
       const sent = await sendPending(photo);
       setNote(sent ? "Added. See it next to the original at the reveal." : "Saved on this device. See waiting photos above.");
-      router.refresh();
+      // Refreshing offline would swap the app for the browser's error page.
+      if (sent) router.refresh();
     } catch (x) {
       setError(x instanceof Error ? x.message : "Couldn't save it. Try again.");
     } finally {

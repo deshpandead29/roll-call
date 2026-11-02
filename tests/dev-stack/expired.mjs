@@ -1,0 +1,51 @@
+// Offline capture after the 1-hour access token has expired.
+import { execFileSync } from "node:child_process";
+import { createRequire } from "node:module";
+import fs from "node:fs";
+const require = createRequire(import.meta.url);
+const pw = require("@playwright/test");
+const chromiumPath = process.env.CHROMIUM_PATH;
+const APP = process.env.APP_URL ?? "http://127.0.0.1:3200", U = process.env.SUPABASE_URL ?? "http://127.0.0.1:54321", K = process.env.SUPABASE_PUBLISHABLE_KEY;
+const DB = process.env.DB_URL ?? "postgresql://postgres:postgres@127.0.0.1:54322/postgres";
+const sql = (q) => execFileSync("psql", [DB, "-Atc", q]).toString().trim();
+const AXE = fs.readFileSync(new URL("../../node_modules/axe-core/axe.min.js", import.meta.url), "utf8");
+const rpc = async (tok, fn, a) => { const t = await (await fetch(`${U}/rest/v1/rpc/${fn}`, { method: "POST", headers: { apikey: K, Authorization: `Bearer ${tok}`, "content-type": "application/json" }, body: JSON.stringify(a) })).text(); try { return JSON.parse(t); } catch { return t; } };
+const b = await pw.chromium.launch(chromiumPath ? { executablePath: chromiumPath } : {}); const phone = { ...pw.devices["iPhone 13"] }; delete phone.defaultBrowserType;
+const G = await b.newContext(phone); const g = await G.newPage();
+await g.goto(APP + "/sign-in"); await g.getByRole("button", { name: "Continue without email" }).click();
+await g.waitForURL(/welcome/); await g.getByLabel("Your name").fill("Tok"); await g.getByRole("button", { name: "Next" }).click();
+await g.getByRole("button", { name: "Skip for now" }).click(); await g.waitForURL(APP + "/");
+const cookies = (await G.cookies()).filter((c) => /^sb-.*-auth-token/.test(c.name)).sort((a, b) => a.name.localeCompare(b.name));
+let raw = decodeURIComponent(cookies.map((c) => c.value).join("")); raw = Buffer.from(raw.slice(7), "base64").toString(); const s = JSON.parse(raw);
+const gid = await rpc(s.access_token, "create_group", { p_name: "Tok", p_display_name: "", p_timezone: "Europe/London", p_other_names: ["Pal"] });
+const today = sql("select (now() at time zone 'Europe/London')::date");
+const eid = await rpc(s.access_token, "create_event", { p_group_id: gid, p_type: "night", p_name: "Token night", p_start_date: today, p_end_date: today, p_member_ids: sql(`select string_agg(id::text, ',') from group_members where group_id='${gid}'`).split(",") });
+await g.goto(`${APP}/events/${eid}`); if (await g.getByRole("button", { name: "Got it" }).count()) await g.getByRole("button", { name: "Got it" }).click();
+// axe on the event page with nothing waiting
+await g.addScriptTag({ content: AXE });
+console.log("axe event:", JSON.stringify(await g.evaluate(async () => (await axe.run(document, { runOnly: ["wcag2a", "wcag2aa"] })).violations.map((v) => v.id))));
+// Expire the stored session in place (browser client reads it from the cookie), then lose signal.
+s.expires_at = Math.floor(Date.now() / 1000) - 60;
+const enc = "base64-" + Buffer.from(JSON.stringify(s)).toString("base64");
+await G.clearCookies();
+const chunk = 3180, base = cookies[0].name.replace(/\.\d+$/, "");
+const parts = enc.match(new RegExp(`.{1,${chunk}}`, "g"));
+await G.addCookies(parts.map((v, i) => ({ name: parts.length > 1 ? `${base}.${i}` : base, value: v, domain: "127.0.0.1", path: "/" })));
+await G.setOffline(true);
+const [fc] = await Promise.all([g.waitForEvent("filechooser"), g.locator(".mission button.shutter").first().click()]);
+await fc.setFiles(new URL("../../prototype/samples/", import.meta.url).pathname + "5jySMpqi6xk.jpg");
+await g.waitForTimeout(8000);
+const msgs = (await g.locator(".error, [role=alert], [role=status], .hand.blue").allInnerTexts()).join(" | ");
+const stored = await g.evaluate(() => new Promise((res) => { const r = indexedDB.open("roll-call-photos", 1); r.onsuccess = () => { const t = r.result.transaction("pending").objectStore("pending").count(); t.onsuccess = () => res(t.result); }; r.onerror = () => res(-1); }));
+console.log(`offline + expired token: messages="${msgs}" photos on device=${stored}`);
+await G.setOffline(false); await g.waitForTimeout(8000);
+console.log(`back online: photos saved on server=${sql(`select count(*) from photos where event_id='${eid}'`)}`);
+// axe on the panel + invite page + welcome alerts
+await g.goto(`${APP}/join/${sql(`select invite_code from groups where id='${gid}'`)}?event=${eid}`);
+await g.addScriptTag({ content: AXE });
+console.log("axe invite:", JSON.stringify(await g.evaluate(async () => (await axe.run(document, { runOnly: ["wcag2a", "wcag2aa"] })).violations.map((v) => v.id))));
+await g.goto(`${APP}/welcome?step=alerts&next=%2F`); await g.waitForTimeout(1500);
+await g.addScriptTag({ content: AXE });
+console.log("axe welcome alerts:", JSON.stringify(await g.evaluate(async () => (await axe.run(document, { runOnly: ["wcag2a", "wcag2aa"] })).violations.map((v) => v.id))));
+await G.setOffline(true); await g.goto(`${APP}/events/${eid}`).catch(() => {});
+await b.close();

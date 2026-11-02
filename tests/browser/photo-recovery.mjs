@@ -42,7 +42,7 @@ try {
     const blob=await new Promise(r=>c.toBlob(r,'image/jpeg'));
     const photo=await queue.saveCapture(new File([blob],'original.jpg',{type:'image/jpeg'}),
       {eventId:'event',memberId:'member',frame:1,who:'Sam',today:'2026-11-02',mission:'Test',accent:'#f00'},
-      {type:'photo',row:{day:'2026-11-02',kind:'night',mission:'Test'}});
+      {type:'photo',row:{day:'2026-11-02',kind:'night',mission:'Test'}},state.owner);
     if(await queue.sendPending(photo))throw Error('Offline save incorrectly succeeded');
     return photo.id;
   });
@@ -66,7 +66,7 @@ try {
     const reply={...photo,id:crypto.randomUUID(),action:{type:'answer',callId:'closed'}};
     state.expired=true;
     // Persist via saveCapture so the file and destination are committed first.
-    const expired=await queue.saveCapture(reply.file,reply.options,reply.action);
+    const expired=await queue.saveCapture(reply.file,reply.options,reply.action,state.owner);
     await queue.sendPending(expired);
     const [blocked]=await queue.pendingPhotos('owner-a');
     const call={...photo,action:{type:'call',recipients:null}};

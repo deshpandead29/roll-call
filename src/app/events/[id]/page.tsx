@@ -318,6 +318,7 @@ export default async function EventPage({
               data={rd}
               shots={shots.filter((x) => x.kind === "roll")}
               nextFrame={nextFrame}
+              userId={auth.claims.sub}
             />
           ) : (
             <section className="card">
@@ -358,6 +359,7 @@ export default async function EventPage({
               missions={missions}
               shots={shots.filter((x) => x.kind !== "roll" && x.kind !== "recreate")}
               nextFrame={nextFrame}
+              userId={auth.claims.sub}
               disabled={!live || day > today}
               swapped={sw > 0}
             />
@@ -373,6 +375,7 @@ export default async function EventPage({
                 director={director(mev, di)!}
                 present={coming.length - gone.length}
                 nextFrame={nextFrame}
+                userId={auth.claims.sub}
                 disabled={!live || day > today}
                 shots={shots.filter((x) => x.kind === "recreate")}
               />
