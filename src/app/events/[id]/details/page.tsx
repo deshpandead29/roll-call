@@ -1,6 +1,8 @@
 import Link from "next/link";
+import { headers } from "next/headers";
+import { InviteLink } from "@/app/groups/[id]/invite-link";
 import { notFound, redirect } from "next/navigation";
-import { formatWhen, PACES, paceSummary, TYPES, type EventType, type Pace } from "@/lib/events";
+import { formatWhen, paceSummary, TYPES, type EventType, type Pace } from "@/lib/events";
 import { createClient } from "@/lib/supabase/server";
 import { DeleteEvent } from "../delete-event";
 import { LeaveEvent } from "../leave-event";
@@ -46,6 +48,9 @@ export default async function EventDetailsPage({ params }: { params: Promise<{ i
   const host = people.find((m) => m.id === ev.host_member_id);
   const isHost = !!host && host.user_id === auth.claims.sub;
   const meOnIt = coming.find((m) => m.user_id === auth.claims.sub);
+  const { data: group } = await supabase.from("groups").select("invite_code").eq("id", ev.group_id).single();
+  const h = await headers();
+  const invite = group ? `${h.get("x-forwarded-proto") ?? "http"}://${h.get("host")}/join/${group.invite_code}?event=${ev.id}` : null;
   const T = TYPES[ev.type];
   const honoree = nameOf(ev.honoree_member_id);
   const reveal = new Date(ev.reveal_at).toLocaleString("en-GB", {
@@ -84,7 +89,7 @@ export default async function EventDetailsPage({ params }: { params: Promise<{ i
           {T.honoree && honoree && (
             <>
               <dt className="label">{T.honoree}</dt>
-              <dd>{honoree}, with one extra Roll Call</dd>
+              <dd>{honoree}</dd>
             </>
           )}
           {ev.type === "trip" && ev.hunt_word && (
@@ -93,9 +98,9 @@ export default async function EventDetailsPage({ params }: { params: Promise<{ i
               <dd>{ev.hunt_word}</dd>
             </>
           )}
-          <dt className="label">Pace</dt>
+          <dt className="label">Roll Calls</dt>
           <dd>
-            {PACES[ev.pace]} · {paceSummary(ev.type, ev.pace)}
+            {paceSummary(ev.type, ev.pace)}
           </dd>
           <dt className="label">{ev.revealed ? "Revealed" : "Reveal"}</dt>
           <dd>{reveal}</dd>
@@ -113,6 +118,14 @@ export default async function EventDetailsPage({ params }: { params: Promise<{ i
           </div>
         )}
       </section>
+
+      {!ev.revealed && invite && (
+        <section className="card t-lime">
+          <h2>Invite to this event</h2>
+          <p className="muted small">This link joins friends to the group and takes them straight to {ev.name}.</p>
+          <InviteLink url={invite} groupName={ev.name} />
+        </section>
+      )}
 
       {!isHost && meOnIt && !ev.revealed && <LeaveEvent eventId={ev.id} memberId={meOnIt.id} name={ev.name} />}
 

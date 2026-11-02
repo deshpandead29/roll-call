@@ -2,9 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
-import { discard, printAndUpload } from "@/lib/capture";
+import { saveCapture, sendPending } from "@/lib/photo-queue";
 import { ACCENT, recreateFor, type MissionEvent } from "@/lib/missions";
-import { createClient } from "@/lib/supabase/client";
 
 const COUNTS = [1, 2, 3, 4, 5, 6, 8, 10];
 
@@ -54,35 +53,16 @@ export function Recreate({
     if (!file || !r) return;
     setBusy(true);
     setError("");
-    let path: string | null = null;
     try {
-      const printed = await printAndUpload(file, {
-        eventId,
-        memberId,
-        frame: nextFrame,
-        who: myName,
-        today,
-        mission: r.title,
-        accent: ACCENT.recreate,
-      });
-      path = printed.path;
-      const { error } = await createClient().from("photos").insert({
-        id: printed.id,
-        event_id: eventId,
-        member_id: memberId,
-        day,
-        kind: "recreate",
-        mission: r.title,
-        frame: nextFrame,
-        storage_path: printed.path,
-        recreate_id: r.id,
-        starring: count,
-      });
-      if (error) throw new Error("Couldn't save it. Try again.");
-      setNote("Saved. See it next to the original at the reveal.");
+      const photo = await saveCapture(file, {
+        eventId, memberId, frame: nextFrame, who: myName, today,
+        mission: r.title, accent: ACCENT.recreate,
+      }, { type: "photo", row: { day, kind: "recreate", mission: r.title, recreate_id: r.id, starring: count } });
+      setNote("Saved on this device. Uploading…");
+      const sent = await sendPending(photo);
+      setNote(sent ? "Added. See it next to the original at the reveal." : "Saved on this device. See waiting photos above.");
       router.refresh();
     } catch (x) {
-      if (path) await discard(path);
       setError(x instanceof Error ? x.message : "Couldn't save it. Try again.");
     } finally {
       setBusy(false);

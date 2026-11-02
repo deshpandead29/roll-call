@@ -30,8 +30,8 @@ export default async function Home() {
     return (
       <section className="hero">
         <p className="wordmark">Roll Call</p>
-        <h1>Every angle, all at once.</h1>
-        <p className="lede">Call roll and everyone shoots the same moment. You see it all the next day.</p>
+        <h1>One moment. Everyone&apos;s side.</h1>
+        <p className="lede">Start a Roll Call for your friends to take a photo wherever they are. See the photos together when your event reveals.</p>
         <HeroCollage />
         <div className="row">
           <Link className="button shutter" href="/sign-in">Get started</Link>
@@ -42,7 +42,7 @@ export default async function Home() {
     );
   }
 
-  // New here: set up a name (and an away card) first.
+  // New here: set up a name first.
   const { data: profile } = await supabase.from("profiles").select("display_name").eq("user_id", claims.sub).maybeSingle();
   if (!profile?.display_name) redirect("/welcome?next=%2F");
 

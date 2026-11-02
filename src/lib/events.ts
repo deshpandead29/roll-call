@@ -6,10 +6,10 @@ export type EventType = "night" | "birthday" | "bigday" | "trip";
 export type Pace = "chill" | "normal" | "chaos";
 
 export const TYPES: Record<EventType, { label: string; open: number | null; cooldown: number; honoree: string | null }> = {
-  night: { label: "Night out", open: 3, cooldown: 75, honoree: null },
-  birthday: { label: "Birthday", open: 2, cooldown: 75, honoree: "Birthday person" },
-  bigday: { label: "Wedding or big day", open: 3, cooldown: 120, honoree: "Holds the couple's extra" },
-  trip: { label: "Trip", open: null, cooldown: 180, honoree: "Organiser" },
+  night: { label: "Night out", open: 3, cooldown: 1, honoree: null },
+  birthday: { label: "Birthday", open: 3, cooldown: 1, honoree: "Birthday person" },
+  bigday: { label: "Wedding or big day", open: 3, cooldown: 1, honoree: null },
+  trip: { label: "Trip", open: null, cooldown: 1, honoree: null },
 };
 
 export const PACES: Record<Pace, string> = { chill: "Chill", normal: "Normal", chaos: "Chaos" };
@@ -17,12 +17,8 @@ export const PACES: Record<Pace, string> = { chill: "Chill", normal: "Normal", c
 export const MAX_TRIP_DAYS = 21;
 
 export function paceSummary(type: EventType, pace: Pace): string {
-  const T = TYPES[type];
-  if (pace === "chaos") return "No limit · 30 min apart";
-  const extra = T.honoree ? " + 1 extra" : "";
-  if (type === "trip") return `2 a day${pace === "chill" ? " (1 fewer)" : ""}${extra} · ${T.cooldown / 60}h apart`;
-  const open = pace === "chill" ? Math.max(1, T.open! - 1) : T.open!;
-  return `${open} Roll Call${open > 1 ? "s" : ""}${extra} · ${T.cooldown} min apart`;
+  void pace; // Retained in stored events for compatibility; all events share one rule set.
+  return `${type === "trip" ? "Shared trip budget (2 × number of days)" : "3 shared calls"} · 1 min apart · host can start extras`;
 }
 
 // Dates are YYYY-MM-DD strings, local to the group.

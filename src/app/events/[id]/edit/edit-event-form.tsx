@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { diffDays, MAX_TRIP_DAYS, PACES, paceSummary, TYPES, type EventType, type Pace } from "@/lib/events";
+import { diffDays, MAX_TRIP_DAYS, paceSummary, TYPES, type EventType, type Pace } from "@/lib/events";
 import { createClient } from "@/lib/supabase/client";
 
 type Ev = {
@@ -27,7 +27,6 @@ export function EditEventForm({ ev, members, coming: initial }: { ev: Ev; member
   const [end, setEnd] = useState(ev.end_date);
   const [coming, setComing] = useState(initial);
   const [honoree, setHonoree] = useState(ev.honoree_member_id ?? "");
-  const [pace, setPace] = useState(ev.pace);
   const [word, setWord] = useState(ev.hunt_word ?? "");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -63,7 +62,6 @@ export function EditEventForm({ ev, members, coming: initial }: { ev: Ev; member
           name: name.trim(),
           start_date: start,
           end_date: last,
-          pace,
           ...(T.honoree ? { honoree_member_id: honoree || null } : {}),
           ...(ev.type === "trip" ? { hunt_word: letters || null } : {}),
         };
@@ -151,16 +149,7 @@ export function EditEventForm({ ev, members, coming: initial }: { ev: Ev; member
                 <span className="muted small">Up to {picked.length} letters, one each.</span>
               </label>
             )}
-            <div className="field">
-              <span className="label">Pace · {paceSummary(ev.type, pace)}</span>
-              <div className="chips" role="group" aria-label="Pace">
-                {(Object.keys(PACES) as Pace[]).map((k) => (
-                  <button key={k} type="button" className="chip" aria-pressed={pace === k} onClick={() => setPace(k)}>
-                    {PACES[k]}
-                  </button>
-                ))}
-              </div>
-            </div>
+            <p className="muted small">{paceSummary(ev.type, ev.pace)}. Anyone can use a shared call.</p>
           </>
         )}
         {error && <p className="error small" role="alert">{error}</p>}

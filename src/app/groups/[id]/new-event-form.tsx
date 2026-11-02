@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { addDays, defaultEventName, diffDays, MAX_TRIP_DAYS, PACES, paceSummary, todayIn, TYPES, type EventType, type Pace } from "@/lib/events";
+import { addDays, defaultEventName, diffDays, MAX_TRIP_DAYS, paceSummary, todayIn, TYPES, type EventType } from "@/lib/events";
 import { createClient } from "@/lib/supabase/client";
 
 type Member = { id: string; name: string };
@@ -16,7 +16,6 @@ export function NewEventForm({ groupId, timeZone, members }: { groupId: string; 
   const [end, setEnd] = useState(() => addDays(today, 2));
   const [coming, setComing] = useState<string[]>(() => members.map((m) => m.id));
   const [honoree, setHonoree] = useState<string>("");
-  const [pace, setPace] = useState<Pace>("normal");
   // Trips: the word everyone spells on letter day, one letter each.
   const [word, setWord] = useState("");
   const [busy, setBusy] = useState(false);
@@ -52,7 +51,7 @@ export function NewEventForm({ groupId, timeZone, members }: { groupId: string; 
       p_end_date: last,
       p_member_ids: picked.map((m) => m.id),
       p_honoree_member_id: T.honoree ? honoreeId || null : null,
-      p_pace: pace,
+      p_pace: "normal",
     });
     if (error) {
       setBusy(false);
@@ -114,7 +113,6 @@ export function NewEventForm({ groupId, timeZone, members }: { groupId: string; 
                 <option key={m.id} value={m.id}>{m.name}</option>
               ))}
             </select>
-            <span className="muted small">Gets one extra Roll Call.</span>
           </label>
         )}
         {type === "trip" && (
@@ -133,20 +131,7 @@ export function NewEventForm({ groupId, timeZone, members }: { groupId: string; 
             </span>
           </label>
         )}
-        {/* Most hosts keep Normal, so pace stays folded until wanted. */}
-        <details className="field">
-          <summary className="label pace-summary">
-            Pace · {PACES[pace]} <span className="hand small">{paceSummary(type, pace)}</span>
-          </summary>
-          <div className="chips" role="group" aria-label="Pace">
-            {(Object.keys(PACES) as Pace[]).map((k) => (
-              <button key={k} type="button" className="chip" aria-pressed={pace === k} onClick={() => setPace(k)}>
-                {PACES[k]}
-              </button>
-            ))}
-          </div>
-          <span className="muted small">Chill has one fewer. Chaos has no limit, 30 minutes apart.</span>
-        </details>
+        <p className="muted small">{paceSummary(type, "normal")}. Anyone can use a shared call.</p>
         {error && <p className="error small" role="alert">{error}</p>}
         <div className="row">
           <button type="submit" className="shutter" disabled={busy}>{busy ? "Creating…" : "Create event"}</button>

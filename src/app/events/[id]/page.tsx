@@ -303,7 +303,7 @@ export default async function EventPage({
               <span>
                 {notJoined.join(", ")} {notJoined.length === 1 ? "hasn't" : "haven't"} joined yet, so won&apos;t get Roll Calls.
               </span>
-              <Link className="link small" href={`/groups/${ev.group_id}/people`}>Send the invite</Link>
+              <Link className="link small" href={`/events/${ev.id}/details`}>Send event invite</Link>
             </div>
           )}
 
@@ -315,7 +315,6 @@ export default async function EventPage({
               today={today}
               me={{ id: me.id, name: me.display_name }}
               members={coming.map((m) => ({ id: m.id, name: m.display_name, joined: !!m.user_id }))}
-              honoree={honoree ? { id: honoree.id, name: honoree.display_name } : null}
               data={rd}
               shots={shots.filter((x) => x.kind === "roll")}
               nextFrame={nextFrame}

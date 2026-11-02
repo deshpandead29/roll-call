@@ -1,6 +1,6 @@
 # Roll Call: build brief
 
-Read this first. It records what's been decided, why, and what's left to build. The working prototype is `prototype/index.html`; when this brief and the prototype disagree on a detail, the prototype shows the intended behaviour and this brief explains it.
+Read this first. It records what's been decided, why, and what's left to build. The working prototype is `prototype/index.html`; the prototype is a visual reference. The app uses the simplified call and recovery rules below, which supersede the prototype's older game rules.
 
 ## What it is
 
@@ -15,24 +15,23 @@ Closest competitors: POV and Lense (shared event cameras with delayed reveal), B
 1. **Event-based, not always-on.** A permanent group holds events: night out, birthday, wedding or big day, trip. Everyday mode was rejected: it competes with BeReal and the reveal only works when people share an experience.
 2. **Roll Calls come from friends, not the app.** The notification reads "Priya called roll", never an app reminder. The caller shoots first.
 3. **Roll Calls are a shared, scarce budget per event**, not one each per week. Scarcity is the point (the Hinge roses logic).
-4. **Users set limits up front; going over needs the group.** The host picks a pace when creating the event. Past the limit, one more needs two other people to back it. Nudges cover judgement calls. Pure nudges were rejected: the caller doesn't bear the cost, the recipients do, and they respond by muting.
+4. **One shared call budget.** Anyone can use it, with a one-minute repeat guard. When it is used, the host can explicitly start an extra. No pace choice, reserved calls, individual limit or backing votes. Historical data stays intact.
 5. **Never fake a photo.** No default or pre-loaded images in a Roll Call. A missed call shows the person's away card, clearly marked.
 6. **The photo look is burned in at capture**, so a Roll Call photo is recognisable anywhere it's shared.
 
 ## Event rules
 
-| Event | Roll Calls (group) | Extra (reserved) | Cooldown | Challenges | Reveal |
-|---|---|---|---|---|---|
-| Night out | 3 | none | 75 min | 1 each from the night deck | 11:00 next day |
-| Birthday | 2 | 1 for the birthday person | 75 min | 1 each from the birthday deck | 11:00 next day |
-| Wedding or big day | 3 | 1 for whoever holds the couple's extra | 120 min | 1 each from the big-day deck | 11:00 next day |
-| Trip | 2 per day | 1 for the organiser | 180 min | 3 a day: shared shot, hunt, wildcard | 00:00 the day after the last day |
+| Event | Shared call budget | Repeat guard | Optional challenges | Reveal |
+|---|---|---|---|---|
+| Night out | 3 | 1 min | 1 each from the night deck | 11:00 next day |
+| Birthday | 3 | 1 min | 1 each from the birthday deck | 11:00 next day |
+| Wedding or big day | 3 | 1 min | 1 each from the big-day deck | 11:00 next day |
+| Trip | 2 × trip days, pooled over the trip | 1 min | 3 a day: shared shot, hunt, wildcard | 00:00 the day after the last day |
 
-- **Pace** (set by the host at creation): Chill removes one Roll Call (one fewer over the whole trip for trips). Normal as above. Chaos: no limit, no one-per-person rule, 30 min cooldown.
-- **One per person:** each person can call once per event (once per day on trips), except in Chaos.
-- **The reserved call** can only be used by its holder, and is used first when they call.
-- **Ask for one more:** when someone's out of calls, they can ask. Two other people backing it unlocks one call for them within 30 minutes. It still respects the cooldown. The ask shows in-app only, never as a push.
-- **Answer window:** 2 minutes counts as on time. Up to 15 minutes still counts, tagged "late". After that the slot shows the away card.
+- **Anyone can call:** the shared budget has no per-person restriction. Host extras require confirmation and still respect the repeat guard.
+- **Answer window:** the server accepts an answer start within 2 minutes as on time, or within 15 minutes as late. Accepted attempts have 10 minutes to finish their upload, before the event reveals. Device timestamps cannot extend the window. Offline captures can only reserve an attempt when the server can be reached.
+- **Photo recovery:** original files and their intended destination are saved in IndexedDB before processing/upload. Replies and challenge photos retry while the app is open and online, including after reload. Outgoing calls require manual retry, and expire after five minutes to avoid surprising delayed calls. Expired/rejected photos remain downloadable until explicitly discarded. Clearing site data removes unsent local photos.
+- **Invitations:** event details offer a group invite code plus event ID. The event preview validates both; joining the group and event happens atomically. The event destination survives sign-in and optional alert setup. Revealed events do not accept new event-invite joins.
 - **Recipients:** everyone on the event except the caller, or (when half or more are snoozed or home) "just us N" for those still out.
 
 ### Nudges before calling (one at a time, first match wins)
@@ -44,18 +43,19 @@ Closest competitors: POV and Lense (shared event cameras with delayed reveal), B
 | Last open call, birthday | "Last one. Is it the cake?" | It's the cake / Save it |
 | Last open call, other | "Last one. Sure?" | Yes, now / Save it |
 | Half or more away | "Only 4 of you still out." | chips: Just us 4 / Everyone |
-| Default | "Everyone gets: "Atharva called roll."" | Shoot / Cancel |
+| Default | "Take your photo to start this Roll Call." | Shoot / Cancel |
+| Host extra (takes priority) | "All shared calls are used. Start an extra as the host?" | Start extra / Cancel |
 
 ### Snooze and going home
 
 - Snooze 1 hour, or snooze until 06:00. Snoozes always expire.
 - "Going home" (not on trips) stops buzzes for the rest of the event; "Back out" undoes it.
 - Snoozed people still receive the Roll Call silently and can answer late in the app.
-- The caller sees how many will actually get a buzz before calling.
+- The caller sees how many are included for alerts; this is not a promise of notification delivery.
 
 ### Away cards
 
-Made once, in your profile, and used in every group you're in: a selfie, shown greyscale with pink stripes and an "away" pill. In the reveal it fills a missed slot with a reason: "snoozed", "home by 22:10" or "missed it". Away cards never count as answers.
+Optional, made in your profile after onboarding, and used in every group you're in: a selfie, shown greyscale with pink stripes and an "away" pill. In the reveal it fills a missed slot with a reason: "snoozed", "home by 22:10" or "missed it". Away cards never count as answers.
 
 ## Challenges
 
@@ -108,11 +108,11 @@ Research in `docs/research.md` (layout and navigation). Rules that keep pages li
 - Each page has one job and one primary button. Home: your groups (New group). Group: its events (New event). Live event: Call roll and your challenges.
 - Forms get their own page: `/groups/new`, `/groups/[id]/events/new`, `/me`. Never stack a create form under a list.
 - Setup shows up only while it's needed: the invite card on a group until someone else joins, the away-card nudge until you've added one, the alerts prompt until alerts are on (full help on home, a one-line prompt on events).
-- Secondary information folds or moves: "So far" (everyone's negatives, calls, who's snoozed or home) sits low on the event page, and Event details (who's coming, pace, reveal time, host, Reveal now, Delete) is its own page, `/events/[id]/details`, linked top right. People and invites live on `/groups/[id]/people`. Your name, away card, alerts and account live on your profile, `/me`, reached from the round photo on home.
+- Secondary information folds or moves: "So far" (everyone's negatives, calls, who's snoozed or home) sits low on the event page, and Event details (who's coming, shared-call rules, reveal time, host, Reveal now, Delete, event invite) is its own page, `/events/[id]/details`, linked top right. People and group-only invites live on `/groups/[id]/people`; event-specific invites live on `/events/[id]/details`. Your name, away card, alerts and account live on your profile, `/me`, reached from the round photo on home.
 - Home answers "what's on": a Now card (live, starting this week, revealed in the last three days), then groups sorted by activity, each with one line on what's next.
 - Lists stay short: a group shows its three latest reveals and folds the rest under "Older"; "So far" lists people with shots and puts everyone else on one line; People is a compact list, not a wall of away cards.
-- First-timers get a quick setup at `/welcome` straight after signing up: their name, an optional away-card selfie, then alerts ("Get the buzz", with the home-screen steps on iPhone, where web push needs the app on the home screen). People joining from an invite give their name on the invite, so they skip that step. Wherever an iPhone can't buzz yet, the group and event pages say so. Then a three-line "How it works" card on their first event, once per device.
-- Hosts change an event at `/events/[id]/edit` (from Details): name, dates, who's coming, honoree, pace, letter-day word; only the name after the reveal. Anyone who's already shot stays on. Guests can leave an event from Details before the reveal; their shots from it go too.
+- First-timers get a quick setup at `/welcome` straight after signing up: their name, then optional alerts ("Get the buzz", with the home-screen steps on iPhone, where web push needs the app on the home screen). People joining from an invite give their name on the invite, so they skip that step. Wherever an iPhone can't buzz yet, the group and event pages say so. Then a short "How it works" card on their first event, once per device.
+- Hosts change an event at `/events/[id]/edit` (from Details): name, dates, who's coming, honoree, letter-day word; only the name after the reveal. Anyone who's already shot stays on. Guests can leave an event from Details before the reveal; their shots from it go too.
 - Anticipation and endings (research: `docs/research.md`, "Interest over time"): upcoming events count down ("in 5 days") and offer Try the look while you wait; everyone on an event gets "Sam's 30th is today" from 09:00 on day one; the reveal ends with the group's next event or "Plan the next one". When an event reveals, everyone on it gets "Lisbon is out".
 - No more than two levels: a page plus one fold or one linked page.
 
@@ -121,9 +121,9 @@ Research in `docs/research.md` (layout and navigation). Rules that keep pages li
 Recommended stack: Next.js (App Router) + TypeScript, Supabase (Postgres, Auth, Storage, Realtime), deployed on Vercel. Installable web app (PWA) first; native later only if groups keep using it.
 
 1. **Foundations.** Supabase project, schema, row-level security, auth. Sign-in by magic link or anonymous session upgraded later; a group invite link adds you to the group.
-2. **Groups and events.** Create group (chip input), join by link, create event (type, dates, who's coming, honoree, pace), away cards.
+2. **Groups and events.** Create group (chip input), join by link, create event (type, dates, who's coming, birthday honoree), optional profile away cards.
 3. **Capture.** Camera via `<input capture>`, `develop()` ported to a module (consider a Web Worker), upload to Storage, negatives strip.
-4. **Roll Call.** Server-side rules (below), realtime alert, answer and late logic, snooze, going home, ask and back, nudges.
+4. **Roll Call.** Server-side rules (below), realtime alert, answer and late logic, snooze, going home, explicit host extras, nudges.
 5. **Push.** Web Push with VAPID keys; service worker; subscription per device. iPhone only receives web push when the app is added to the home screen (iOS 16.4+), so onboarding must walk people through installing it.
 6. **Challenges and recreate.** Port the deterministic assignment functions and the decks.
 7. **Reveal.** Scheduled reveal (cron or `revealed_at` check on read), moments view, people view, recreations side by side, develop animation.
@@ -132,13 +132,13 @@ Recommended stack: Next.js (App Router) + TypeScript, Supabase (Postgres, Auth, 
 ### Things the prototype fakes that production must do properly
 
 - **Sealing is UI-only in the prototype.** Production must not serve other people's photos before the reveal: Storage access through signed URLs or RLS that checks `now() >= reveal_at` for anyone but the photo's owner.
-- **Roll Call rules must be enforced on the server**, in one transaction (a Postgres function): budget, reserved call, one per person, cooldown, backed extras. Two people pressing at once must not both succeed.
+- **Roll Call rules must be enforced on the server**, in one transaction (a Postgres function): shared budget, one-minute repeat guard, host-only extras and answer deadlines. Two people pressing at once must not both succeed.
 - **Photos are stored as base64 in documents in the prototype.** Use Storage objects and keep only paths in rows.
 - **HEIC and EXIF orientation:** iPhones can hand over HEIC; make sure decoding and orientation work before grading.
 - **Timezones:** event dates are local. Store the group's timezone and compute reveal times from it.
 - **Privacy:** no face recognition (deliberately avoided; biometric data). Let people delete their own photos, and an event. Add reporting and removal for anything posted in a group.
 
-## Suggested schema
+## Retained schema
 
 ```
 groups(id, name, created_by, created_at, invite_code)
@@ -148,9 +148,10 @@ event_members(event_id, member_id)
 photos(id, event_id, member_id, day, kind, mission, frame, storage_path, roll_call_id, late, recreate_id, starring, hunt_tag, hunt_order, wild_cat, created_at)
 roll_calls(id, event_id, caller_member_id, called_at, reserved, extra, recipients uuid[], day)
 member_status(event_id, member_id, snooze_until, home, home_at)
-extra_asks(id, event_id, requester_member_id, asked_at, used)
-extra_backs(ask_id, member_id, backed_at)
+extra_asks(id, event_id, requester_member_id, asked_at, used) -- legacy; no new asks accepted
+extra_backs(ask_id, member_id, backed_at) -- legacy; votes do not unlock calls
 swaps(event_id, member_id, day, count)
+private.roll_answer_attempts(photo_id, roll_call_id, member_id, started_at)
 push_subscriptions(user_id, endpoint, keys, created_at)
 ```
 
@@ -166,3 +167,11 @@ push_subscriptions(user_id, endpoint, keys, created_at)
 - `prototype/samples/`: photos from Unsplash under the Unsplash License, used for the sample event and hero. Credits in `docs/credits.md`. Names in the sample are invented.
 - `prototype/art/`: public-domain paintings via Wikimedia Commons. American Gothic (US public domain from 2026) and Matisse's Dance (UK and EU public domain from 2025) are recent; confirm before launch. The Creation of Adam is cropped to the hands.
 - Excalifont: SIL Open Font License.
+
+## Review and migration notes
+
+See `docs/simpler-calls-review.md` for the handoff, complete migration inventory, compatibility risks and latest test output. This branch is an un-deployed review candidate. No hosted Supabase migrations have been applied by Codex.
+
+The pace enum/column and legacy ask/backing tables/functions remain stored for compatibility. Existing `chill`, `normal` and `chaos` values are preserved but ignored by call enforcement. Every existing call, including reserved/backed extras, counts against the new shared budget. Host extras are not capped, but each is confirmed in the new UI and still observes the one-minute guard. The backend checks host identity; it does not verify UI confirmation. `ask_extra()` now rejects because `can_ask` is always false; `back_extra()` can still record valid old votes, but those votes have no effect on calling rights. Do not describe these functions as providing full legacy-client compatibility.
+
+The recovery database is IndexedDB `roll-call-photos`, version 1, object store `pending`, primary key `id` (a photo UUID). There is no Cache API use, app-defined byte/item quota, persistent-storage request, encryption layer or age-based local deletion. Browser quota/eviction and clearing site data can remove unsent images. Successful reconciliation/save or explicit discard deletes the local entry; logout hides but retains it. Downloads keep the local entry. Original files may include their original metadata. The server's existing photos/negatives bucket limit is 5 MiB; it is separate from the unbounded device queue.

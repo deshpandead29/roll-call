@@ -2,7 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
-import { discard, hhmm, printAndUpload } from "@/lib/capture";
+import { hhmm } from "@/lib/events";
+import { saveCapture, sendPending } from "@/lib/photo-queue";
 import type { EventType } from "@/lib/events";
 import { ACCENT } from "@/lib/missions";
 import { createClient } from "@/lib/supabase/client";
@@ -76,7 +77,6 @@ export function RollCall({
   today,
   me,
   members,
-  honoree,
   data,
   shots,
   nextFrame,
@@ -87,7 +87,6 @@ export function RollCall({
   today: string;
   me: Member;
   members: Member[];
-  honoree: Member | null;
   data: RollData;
   shots: Shot[];
   nextFrame: number;
@@ -126,9 +125,7 @@ export function RollCall({
       channel = supabase
         .channel(`roll:${eventId}`)
         .on("postgres_changes", { event: "*", schema: "public", table: "roll_calls", filter }, refresh)
-        .on("postgres_changes", { event: "*", schema: "public", table: "extra_asks", filter }, refresh)
         .on("postgres_changes", { event: "*", schema: "public", table: "member_status", filter }, refresh)
-        .on("postgres_changes", { event: "INSERT", schema: "public", table: "extra_backs" }, refresh)
         .subscribe();
     });
     const tick = setInterval(() => setNow(clock()), 1000);
@@ -161,9 +158,6 @@ export function RollCall({
         !c.mine_answered,
     )
     .pop();
-  const myAsk = data.asks.find((a) => a.requester_member_id === me.id);
-  const openAsks = data.asks.filter((a) => a.requester_member_id !== me.id);
-
   // Nudges before calling: one at a time, first match wins.
   function nudge(): Sheet {
     const hour = Number(new Intl.DateTimeFormat("en-GB", { hour: "numeric", hourCycle: "h23", timeZone }).format(now));
@@ -173,7 +167,8 @@ export function RollCall({
       others.length >= 2 && out.length > 0 && out.length < others.length && others.length - out.length >= others.length / 2
         ? out.map((m) => m.id)
         : null;
-    const base: Sheet = { copy: `Everyone gets: "${me.name} called roll."`, yes: "Shoot", no: "Cancel", split, mode: split ? "split" : "all" };
+    const base: Sheet = { copy: "Take your photo to start this Roll Call.", yes: "Shoot", no: "Cancel", split, mode: split ? "split" : "all" };
+    if (st?.extra) return { ...base, copy: "All shared calls are used. Start an extra as the host?", yes: "Start extra", no: "Cancel" };
     if (hour < 6) return { ...base, copy: `It's ${hhmm(now, timeZone)}. People are asleep.`, yes: "Call anyway", no: "Save it" };
     if (recent.length >= 3)
       return { ...base, copy: `${recent.length} calls since ${hhmm(recent[0].called_at, timeZone)}. Sure?`, yes: "Call anyway", no: "Wait" };
@@ -202,52 +197,23 @@ export function RollCall({
     job.current = null;
     if (!file || !j) return;
     setBusy(true);
-    const supabase = createClient();
     const t = clock();
     const caller = j.type === "call" ? me.name : name(j.call.caller_member_id);
-    let printed: { id: string; path: string } | null = null;
     try {
-      printed = await printAndUpload(file, {
-        eventId,
-        memberId: me.id,
-        frame: nextFrame,
-        who: me.name,
-        today,
-        mission: `roll call · ${caller}`,
-        accent: ACCENT.roll,
-        time: hhmm(t, timeZone),
-      });
-      if (j.type === "call") {
-        const { data: rollCallId, error } = await supabase.rpc("call_roll", {
-          p_event_id: eventId,
-          p_photo_id: printed.id,
-          p_storage_path: printed.path,
-          p_frame: nextFrame,
-          p_recipients: j.recipients,
-        });
-        if (error) throw new Error(error.message);
-        // Buzz everyone's phones. The call stands whether or not this works.
-        fetch("/api/push/roll-call", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ rollCallId }),
-        }).catch(() => {});
-        setSheet(null);
-        setNote(`Called. ${buzz} buzzed.`);
-      } else {
-        const { data: res, error } = await supabase.rpc("answer_roll", {
-          p_roll_call_id: j.call.id,
-          p_photo_id: printed.id,
-          p_storage_path: printed.path,
-          p_frame: nextFrame,
-        });
-        if (error) throw new Error(error.message);
-        setAnswered((a) => [...a, j.call.id]);
-        setNote((res as { late: boolean }).late ? "Answered late. Still counts." : "Answered");
-      }
+      const photo = await saveCapture(file, {
+        eventId, memberId: me.id, frame: nextFrame, who: me.name, today,
+        mission: `roll call · ${caller}`, accent: ACCENT.roll, time: hhmm(t, timeZone),
+      }, j.type === "call" ? { type: "call", recipients: j.recipients } : { type: "answer", callId: j.call.id });
+      setNote("Saved on this device. Uploading…");
+      const sent = await sendPending(photo);
+      if (j.type === "call") setSheet(null);
+      if (sent && j.type === "answer") setAnswered((a) => [...a, j.call.id]);
+      setNote(sent
+        ? j.type === "call" ? "Roll Call started. Responses will appear below." : "Answer added"
+        : j.type === "call" ? "Photo saved on this device. Call status isn't confirmed. Retry above before starting another."
+          : "Saved on this device. See waiting photos above.");
       startRefresh(() => router.refresh());
     } catch (x) {
-      if (printed) await discard(printed.path);
       setError(x instanceof Error ? x.message : "Couldn't save it. Try again.");
     } finally {
       setBusy(false);
@@ -277,20 +243,6 @@ export function RollCall({
     router.refresh();
   }
 
-  async function ask() {
-    const { error } = await createClient().rpc("ask_extra", { p_event_id: eventId });
-    if (error) return setError(error.message);
-    setNote("Asked. Needs 2 backers.");
-    router.refresh();
-  }
-
-  async function back(id: string) {
-    const { error } = await createClient().rpc("back_extra", { p_ask_id: id });
-    if (error) return setError(error.message);
-    setNote("Backed");
-    router.refresh();
-  }
-
   if (!st) return null;
   const used = st.open === null ? 0 : st.open - (st.remaining ?? 0);
   const showAlert = pending && st.live && !isSnoozed(me.id) && !isHome(me.id) && !dismissed.includes(pending.id);
@@ -307,15 +259,8 @@ export function RollCall({
           {Array.from({ length: st.open }, (_, k) => (
             <span key={k} className={`rc-dot${k < used ? " used" : ""}`} />
           ))}
-          {st.reserved_total > 0 && <span className={`rc-dot res${st.reserved_used ? " used" : ""}`} />}
         </div>
       )}
-      {st.reserved_total > 0 && honoree && (
-        <p className="muted small">
-          {honoree.name} has 1 extra{st.reserved_used ? " (used)" : ""}.
-        </p>
-      )}
-
       {pending && !showAlert && (
         <div className="ask">
           <p>
@@ -326,19 +271,6 @@ export function RollCall({
           </button>
         </div>
       )}
-
-      {openAsks.map((a) => (
-        <div key={a.id} className="ask">
-          <p>
-            <strong>{name(a.requester_member_id)} wants one more</strong> · {a.backers.length}/2
-          </p>
-          {a.backers.includes(me.id) ? (
-            <span className="hand blue">backed</span>
-          ) : (
-            <button className="ghost sm" onClick={() => back(a.id)}>Back it</button>
-          )}
-        </div>
-      ))}
 
       {sheet ? (
         <div className="sheet">
@@ -354,7 +286,7 @@ export function RollCall({
             </div>
           )}
           <p className="muted small">
-            {buzz} will get a buzz.{st.reserved ? " Uses your extra." : st.extra ? " Uses the backed one." : ""}
+            {buzz} {buzz === 1 ? "person is" : "people are"} included for alerts. Delivery depends on their phone settings and connection.{st.extra ? " Starts an extra host call." : ""}
           </p>
           <div className="row">
             <button
@@ -375,17 +307,9 @@ export function RollCall({
           </button>
           <p className={`${st.ok ? "muted" : "hand"} small`}>
             {st.ok
-              ? st.reserved
-                ? "Your extra one. You shoot first."
-                : st.extra
-                  ? "Backed by the group. You shoot first."
-                  : "You shoot first."
+              ? st.extra ? "All shared calls used. You can start an extra as the host." : "Anyone can call. You shoot first."
               : st.why}
           </p>
-          {st.can_ask && !myAsk && st.live && (
-            <button className="link" onClick={ask}>Ask for one more</button>
-          )}
-          {myAsk && <p className="hand blue small">Asked · {myAsk.backers.length}/2 backed</p>}
         </>
       )}
 
@@ -433,12 +357,13 @@ export function RollCall({
         <div className="alert" role="alertdialog" aria-label="Roll Call">
           <p className="alert-k">roll call</p>
           <p className="alert-t">{name(pending.caller_member_id)} called roll</p>
-          <p className="alert-c">{left > 0 ? `${Math.floor(left / MIN)}:${pad(Math.floor((left % MIN) / 1000))} left` : "Late, still counts"}</p>
+          <p className="alert-c">{left > 0 ? `${Math.floor(left / MIN)}:${pad(Math.floor((left % MIN) / 1000))} to answer on time` : "Late, still counts"}</p>
+          <p className="small">Start sending within 15 minutes of the call. Once accepted, you have 10 minutes to finish uploading.</p>
           <div className="row">
             <button className="shutter alert-go" disabled={busy} onClick={() => openCamera({ type: "answer", call: pending })}>
               {busy ? "Printing…" : "Shoot"}
             </button>
-            <button className="ghost alert-no" onClick={() => setDismissed((d) => [...d, pending.id])}>Later</button>
+            <button className="ghost alert-no" onClick={() => setDismissed((d) => [...d, pending.id])}>Not now</button>
           </div>
         </div>
       )}

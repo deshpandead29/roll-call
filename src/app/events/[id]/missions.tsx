@@ -2,7 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
-import { discard, printAndUpload } from "@/lib/capture";
+import { discard } from "@/lib/capture";
+import { saveCapture, sendPending } from "@/lib/photo-queue";
 import { ACCENT, type HuntType, type PhotoKind, type WildCategory } from "@/lib/missions";
 import { createClient } from "@/lib/supabase/client";
 
@@ -68,32 +69,13 @@ export function Missions({
     if (!file || !m) return;
     setBusy(m.kind);
     try {
-      const frame = nextFrame;
-      const { id, path } = await printAndUpload(file, {
-        eventId,
-        memberId,
-        frame,
-        who: myName,
-        today,
-        mission: m.task,
-        accent: ACCENT[m.kind],
-      });
-      const row = await createClient().from("photos").insert({
-        id,
-        event_id: eventId,
-        member_id: memberId,
-        day,
-        kind: m.kind,
-        mission: m.task,
-        frame,
-        storage_path: path,
-        ...m.meta,
-      });
-      if (row.error) {
-        await discard(path);
-        throw new Error("Couldn't save it. Try again.");
-      }
-      setNote("Saved. It develops at the reveal.");
+      const photo = await saveCapture(file, {
+        eventId, memberId, frame: nextFrame, who: myName, today,
+        mission: m.task, accent: ACCENT[m.kind],
+      }, { type: "photo", row: { day, kind: m.kind, mission: m.task, ...m.meta } });
+      setNote("Saved on this device. Uploading…");
+      const sent = await sendPending(photo);
+      setNote(sent ? "Added. It develops at the reveal." : "Saved on this device. See waiting photos above.");
       router.refresh();
     } catch (x) {
       setError(x instanceof Error && x.message !== "encode" ? x.message : "Couldn't save it. Try again.");

@@ -111,7 +111,7 @@ export async function buildReveal(
         const missed = c.recipients.filter((r) => !answers.some((p) => p.member_id === r));
         return {
           label: `#${k + 1} · ${name(c.caller_member_id)} · ${hhmm(c.called_at, ev.timezone)}`,
-          sub: c.reserved ? `${name(c.caller_member_id)}'s extra` : c.extra ? "backed by the group" : undefined,
+          sub: c.reserved ? `${name(c.caller_member_id)}'s extra` : c.extra ? "extra call" : undefined,
           layout: "board",
           items: [
             ...answers.map((p) => photo(p, p.member_id === c.caller_member_id ? `${name(p.member_id)} · called` : name(p.member_id))),

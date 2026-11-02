@@ -12,11 +12,15 @@ export function JoinForm({
   signedIn,
   openNames,
   defaultName = "",
+  eventId,
+  alreadyInGroup = false,
 }: {
   code: string;
   signedIn: boolean;
   openNames: OpenName[];
   defaultName?: string;
+  eventId?: string;
+  alreadyInGroup?: boolean;
 }) {
   const router = useRouter();
   const [ready, setReady] = useState(signedIn);
@@ -24,7 +28,7 @@ export function JoinForm({
   const [name, setName] = useState(defaultName);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const here = `/join/${encodeURIComponent(code)}`;
+  const here = `/join/${encodeURIComponent(code)}${eventId ? `?event=${encodeURIComponent(eventId)}` : ""}`;
 
   async function skipEmail() {
     setBusy(true);
@@ -39,14 +43,15 @@ export function JoinForm({
     e.preventDefault();
     setBusy(true);
     setError("");
-    const { data, error } = await createClient().rpc("join_group", {
+    const { data, error } = await createClient().rpc(eventId ? "join_event_invite" : "join_group", {
+      ...(eventId ? { p_event_id: eventId } : {}),
       p_code: code,
       p_display_name: claim ? null : name.trim(),
       p_claim_member_id: claim,
     });
     setBusy(false);
     if (!error) {
-      router.replace(`/welcome?step=card&next=${encodeURIComponent(`/groups/${data}`)}`);
+      router.replace(`/welcome?step=alerts&next=${encodeURIComponent(eventId ? `/events/${data}` : `/groups/${data}`)}`);
       router.refresh();
     } else if (error.code === "23505") {
       setError(claim ? "Someone already joined as that name." : "That name's taken. If it's you, pick it above.");
@@ -71,7 +76,7 @@ export function JoinForm({
   return (
     <section className="card">
       <form className="stack" onSubmit={join}>
-        {openNames.length > 0 && (
+        {!alreadyInGroup && openNames.length > 0 && (
           <div className="field">
             <span className="label">Are you one of these?</span>
             <div className="chips" role="group" aria-label="Names already added">
@@ -89,7 +94,7 @@ export function JoinForm({
             </div>
           </div>
         )}
-        {!claim && (
+        {!alreadyInGroup && !claim && (
           <label className="field">
             <span className="label">{openNames.length ? "Or your name" : "Your name"}</span>
             <input
@@ -103,7 +108,7 @@ export function JoinForm({
         )}
         {error && <p className="error small" role="alert">{error}</p>}
         <div className="row">
-          <button type="submit" disabled={busy || (!claim && !name.trim())}>Join</button>
+          <button type="submit" disabled={busy || (!alreadyInGroup && !claim && !name.trim())}>{busy ? "Joining…" : eventId ? "Join event" : "Join group"}</button>
         </div>
       </form>
     </section>

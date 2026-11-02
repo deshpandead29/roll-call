@@ -33,8 +33,9 @@ export function HowItWorks({ reveal, trip }: { reveal: string; trip: boolean }) 
     <section className="card t-lime">
       <h2>How it works</h2>
       <ol className="steps">
-        <li>When someone calls roll, your phone buzzes. Shoot what&apos;s in front of you within 2 minutes.</li>
-        <li>{trip ? "You get three challenges a day" : "You get one challenge"}, below. Shoot {trip ? "them" : "it"} whenever it happens.</li>
+        <li>When someone calls roll, take a photo of what&apos;s in front of you. Alerts can notify you when enabled on your phone.</li>
+        <li>Start sending within 2 minutes to answer on time, or within 15 minutes for a late answer. Once accepted, slow uploads have 10 minutes to finish.</li>
+        <li>{trip ? "Three optional challenges a day" : "One optional challenge"}, below. Try {trip ? "them" : "it"} whenever you like.</li>
         <li>Nobody sees anyone&apos;s photos until the reveal, {reveal}.</li>
       </ol>
       <div className="row">
