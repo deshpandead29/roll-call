@@ -23,7 +23,7 @@ export function SampleView() {
   return (
     <>
       <div className="notice">
-        <p>A finished trip, so you can see a reveal. Real photos, made-up names.</p>
+        <p>This is an example, not a real group. The photos are from Unsplash and the names are made up.</p>
         <p className="credits">
           Photos:{" "}
           {SAMPLE_CREDITS.map((c, i) => (

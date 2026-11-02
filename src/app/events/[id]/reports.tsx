@@ -30,7 +30,7 @@ export function Reports({ reports, photos }: { reports: (Report & { reporter: st
   }
 
   return (
-    <section className="card t-blue">
+    <section className="card">
       <h2>Reported</h2>
       <p className="muted small">Only the host and the group&apos;s maker see this. Remove takes it down for everyone.</p>
       {ids.map((id) => {

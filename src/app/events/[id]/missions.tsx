@@ -75,9 +75,9 @@ export function Missions({
         eventId, memberId, frame: nextFrame, who: myName, today,
         mission: m.task, accent: ACCENT[m.kind],
       }, { type: "photo", row: { day, kind: m.kind, mission: m.task, ...m.meta } }, userId);
-      setNote("Saved on this device. Uploading…");
+      setNote("Saved on this phone. Sending…");
       const sent = await sendPending(photo);
-      setNote(sent ? "Added. It develops at the reveal." : "Saved on this device. See waiting photos above.");
+      setNote(sent ? "Added. It opens with everyone else's." : "Not sent yet. It's saved on this phone and will send. See above.");
       // Refreshing offline would swap the app for the browser's error page.
       if (sent) router.refresh();
     } catch (x) {
@@ -112,15 +112,8 @@ export function Missions({
         const mine = shots.filter((s) => s.kind === m.kind);
         return (
           <div key={m.kind} className="mission">
-            <span
-              className="dot-ic lg"
-              style={{ background: m.icon.bg, color: m.icon.fg ?? "#16151A" }}
-              aria-hidden="true"
-            >
-              {m.icon.text}
-            </span>
             <div className="body">
-              <span className="label">{m.label}</span>
+              {m.kind !== "night" && <span className="label">{m.label}</span>}
               <p className="task">{m.task}</p>
               {m.sub && <p className="muted small">{m.sub}</p>}
               {mine.length > 0 && (
@@ -137,12 +130,11 @@ export function Missions({
                       </div>
                     ))}
                   </div>
-                  <span className="hand ink small">develops at the reveal</span>
                 </div>
               )}
               <div className="row">
                 <button className="shutter" onClick={() => shoot(m)} disabled={disabled || !!busy}>
-                  {busy === m.kind ? "Printing…" : "Shoot"}
+                  {busy === m.kind ? "Saving…" : mine.length ? "Another" : "Take photo"}
                 </button>
                 {m.swappable && !swapped && !mine.length && (
                   <button className="ghost" onClick={swap} disabled={disabled || !!busy}>Swap</button>
@@ -161,7 +153,7 @@ export function Missions({
           </div>
         </div>
       )}
-      {note && <p className="hand blue" role="status">{note}</p>}
+      {note && <p className="note" role="status">{note}</p>}
       {error && <p className="error small" role="alert">{error}</p>}
       <input ref={input} type="file" accept="image/*" capture="environment" hidden onChange={onFile} />
     </>

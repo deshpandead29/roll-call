@@ -40,7 +40,7 @@ export default async function MePage() {
         <NameForm current={name} />
       </section>
 
-      <section className="card t-lime" id="away">
+      <section className="card" id="away">
         <h2>Away card</h2>
         <p className="muted small">A selfie that fills your slot when you miss a Roll Call, in all your groups. Shown greyscale, marked away.</p>
         <div className="aways">
@@ -51,7 +51,7 @@ export default async function MePage() {
 
       <AlertsSetup isAnonymous={!!claims.is_anonymous} />
 
-      <section className="card t-blue">
+      <section className="card">
         {claims.is_anonymous ? (
           <>
             <h2>Add your email</h2>

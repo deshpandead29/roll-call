@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { AlertsSetup } from "@/components/alerts-setup";
+import { PendingPhotos } from "@/components/pending-photos";
 import { addDays, diffDays, eventStatus, formatDate, formatWhen, hhmm, todayIn, TYPES, type EventType, type Pace } from "@/lib/events";
 import {
   CAT_GLYPH,
@@ -216,9 +217,11 @@ export default async function EventPage({
         <p className="muted">
           <span className={`pill ${status.tone}`}>{status.label}</span> {T.label} · {formatWhen(ev)}
           {status.sub ? ` · ${status.sub}` : ""}
-          {!ev.revealed ? ` · reveals ${reveal}` : ""}
         </p>
+        {!ev.revealed && <p>Photos open {reveal}</p>}
       </section>
+      {/* This event's photos still on the phone, right under the title. */}
+      <PendingPhotos eventId={ev.id} owner={auth.claims.sub} />
     </>
   );
 
@@ -258,7 +261,7 @@ export default async function EventPage({
         )}
         <RevealView data={data} actions canModerate={canModerate} />
         {/* The reveal is the high point; end it with the next one, not a dead end. */}
-        <section className="card t-blue">
+        <section className="card">
           <h2>{next ? "Next up" : "Do it again"}</h2>
           {next ? (
             <Link className="trip" href={`/events/${next.id}`}>
@@ -283,6 +286,10 @@ export default async function EventPage({
     );
   }
 
+  const shooters = coming.filter((m) => (countOf.get(m.id) ?? 0) > 0);
+  const challengeShots = shots.filter((x) => x.kind !== "roll" && x.kind !== "recreate");
+  const directing = isRecreateDay(mev, di) ? director(mev, di) : null;
+
   return (
     <>
       {header}
@@ -290,23 +297,11 @@ export default async function EventPage({
       {!me ? (
         <section className="card">
           <h2>Not on this one</h2>
-          <p className="muted">You&apos;ll still see the reveal. Join to get Roll Calls and a challenge.</p>
+          <p className="muted">You&apos;ll still see the photos when they open. Join to get Roll Calls.</p>
           {meInGroup && <JoinEvent eventId={ev.id} memberId={meInGroup.id} />}
         </section>
       ) : (
         <>
-          <AlertsSetup isAnonymous={!!auth.claims.is_anonymous} compact />
-          <HowItWorks reveal={reveal} trip={ev.type === "trip"} />
-
-          {isHost && notJoined.length > 0 && (
-            <div className="notice">
-              <span>
-                {notJoined.join(", ")} {notJoined.length === 1 ? "hasn't" : "haven't"} joined yet, so won&apos;t get Roll Calls.
-              </span>
-              <Link className="link small" href={`/events/${ev.id}/details`}>Send event invite</Link>
-            </div>
-          )}
-
           {live && rd ? (
             <RollCall
               eventId={ev.id}
@@ -319,22 +314,35 @@ export default async function EventPage({
               shots={shots.filter((x) => x.kind === "roll")}
               nextFrame={nextFrame}
               userId={auth.claims.sub}
+              reveal={reveal}
             />
           ) : (
             <section className="card">
               <h2>Starts {formatDate(ev.start_date)}</h2>
               <p className="muted">
-                {status.sub ? `That's ${status.sub}. ` : ""}Roll Calls and challenges open on the day. Here&apos;s a preview of yours.
+                {status.sub ? `That's ${status.sub}. ` : ""}Roll Calls open on the day.
               </p>
-              <div className="row">
-                <Link className="button ghost" href="/try">Try the look</Link>
-                <span className="muted small">on any photo, while you wait</span>
-              </div>
             </section>
           )}
 
-          <section className="card">
-            <h2>Your challenge{ev.type === "trip" ? "s" : ""}</h2>
+          {isHost && notJoined.length > 0 && (
+            <div className="notice">
+              <span>
+                {notJoined.join(", ")} {notJoined.length === 1 ? "hasn't" : "haven't"} joined yet, so won&apos;t get Roll Calls.
+              </span>
+              <Link className="link small" href={`/events/${ev.id}/details`}>Send event invite</Link>
+            </div>
+          )}
+
+          <AlertsSetup isAnonymous={!!auth.claims.is_anonymous} compact />
+          <HowItWorks reveal={reveal} />
+
+          {/* Challenges are optional and secondary: one compact card, trips fold. */}
+          <details className="card challenges" open={ev.type !== "trip"}>
+            <summary>
+              {ev.type === "trip" ? `Challenges, day ${di + 1}` : "Optional challenge"}
+              {challengeShots.length > 0 && <span className="muted small"> · done</span>}
+            </summary>
             {ev.type === "trip" && (
               <>
                 <div className="days" role="group" aria-label="Day">
@@ -344,7 +352,7 @@ export default async function EventPage({
                     </Link>
                   ))}
                 </div>
-                <p className="hand">
+                <p className="muted small">
                   {huntDay}
                   {day === today ? " · today" : day > today ? " · opens on the day" : ""}
                 </p>
@@ -357,13 +365,13 @@ export default async function EventPage({
               day={day}
               today={today}
               missions={missions}
-              shots={shots.filter((x) => x.kind !== "roll" && x.kind !== "recreate")}
+              shots={challengeShots}
               nextFrame={nextFrame}
               userId={auth.claims.sub}
               disabled={!live || day > today}
               swapped={sw > 0}
             />
-            {isRecreateDay(mev, di) && director(mev, di) && (
+            {directing && (
               <Recreate
                 mev={mev}
                 di={di}
@@ -372,7 +380,7 @@ export default async function EventPage({
                 myName={me.display_name}
                 day={day}
                 today={today}
-                director={director(mev, di)!}
+                director={directing}
                 present={coming.length - gone.length}
                 nextFrame={nextFrame}
                 userId={auth.claims.sub}
@@ -380,31 +388,29 @@ export default async function EventPage({
                 shots={shots.filter((x) => x.kind === "recreate")}
               />
             )}
-          </section>
+          </details>
         </>
       )}
 
+      {/* Who's shooting, not what or how much: no tallies, no list of who hasn't. */}
       {live && (
-        <section className="card t-lime">
-          <div className="top">
-            <h2>So far</h2>
-            <span className="big">{total}</span>
-          </div>
-          <p className="muted small">Everyone&apos;s negatives. They develop at the reveal.</p>
-          {coming.filter((m) => (countOf.get(m.id) ?? 0) > 0).map((m) => {
-            const n = countOf.get(m.id) ?? 0;
+        <details className="card so-far">
+          <summary>
+            So far
+            <span className="muted small">
+              {" "}· {total} {total === 1 ? "photo" : "photos"}
+              {shooters.length > 0 && `, ${shooters.length} ${shooters.length === 1 ? "person" : "people"}`}
+            </span>
+          </summary>
+          <p className="muted small">Small negatives, so you can see who&apos;s shooting. They develop when the photos open.</p>
+          {shooters.map((m) => {
             const negs = negatives.filter((x) => x.member_id === m.id);
             return (
               <div key={m.id} className="roll-row">
-                <div className="who">
-                  <span>
-                    {m.display_name}
-                    {m.id === me?.id ? " (you)" : ""}
-                    {!m.user_id && <span className="muted small"> · not joined</span>}
-                  </span>
-                  <span />
-                  <span className="num">{n}</span>
-                </div>
+                <span>
+                  {m.display_name}
+                  {m.id === me?.id ? " (you)" : ""}
+                </span>
                 {negs.length > 0 && (
                   <div className="strip">
                     {negs.map((x) => (
@@ -418,33 +424,23 @@ export default async function EventPage({
               </div>
             );
           })}
-          {coming.some((m) => !countOf.get(m.id)) && (
-            <p className="muted small roll-row">
-              No shots yet:{" "}
-              {coming
-                .filter((m) => !countOf.get(m.id))
-                .map((m) => (m.id === me?.id ? "you" : m.display_name) + (m.user_id ? "" : " (not joined)"))
-                .join(", ")}
-            </p>
-          )}
           {(snoozed.length > 0 || gone.length > 0) && (
             <p className="muted small">
-              {snoozed.length > 0 && `Snoozed: ${snoozed.join(", ")}`}
+              {snoozed.length > 0 && `Alerts paused: ${snoozed.join(", ")}`}
               {snoozed.length > 0 && gone.length > 0 && " · "}
               {gone.length > 0 && `Home: ${gone.join(", ")}`}
             </p>
           )}
           {rd && rd.calls.length > 0 && (
             <div className="calls">
-              {rd.calls.map((c, k) => (
+              {rd.calls.map((c) => (
                 <p key={c.id} className="small">
-                  <span className="hand ink">#{k + 1}</span> {nameOf(c.caller_member_id)} called · {hhmm(c.called_at, ev.timezone)} ·{" "}
-                  {c.answered}/{c.recipients.length + 1} shot
+                  {nameOf(c.caller_member_id)} called roll at {hhmm(c.called_at, ev.timezone)}
                 </p>
               ))}
             </div>
           )}
-        </section>
+        </details>
       )}
     </>
   );

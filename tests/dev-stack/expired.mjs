@@ -35,7 +35,7 @@ await G.setOffline(true);
 const [fc] = await Promise.all([g.waitForEvent("filechooser"), g.locator(".mission button.shutter").first().click()]);
 await fc.setFiles(new URL("../../prototype/samples/", import.meta.url).pathname + "5jySMpqi6xk.jpg");
 await g.waitForTimeout(8000);
-const msgs = (await g.locator(".error, [role=alert], [role=status], .hand.blue").allInnerTexts()).join(" | ");
+const msgs = (await g.locator(".error, [role=alert], [role=status], .note").allInnerTexts()).join(" | ");
 const stored = await g.evaluate(() => new Promise((res) => { const r = indexedDB.open("roll-call-photos", 1); r.onsuccess = () => { const t = r.result.transaction("pending").objectStore("pending").count(); t.onsuccess = () => res(t.result); }; r.onerror = () => res(-1); }));
 console.log(`offline + expired token: messages="${msgs}" photos on device=${stored}`);
 await G.setOffline(false); await g.waitForTimeout(8000);

@@ -1,5 +1,6 @@
 "use client";
 
+import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { PendingPhotos } from "./pending-photos";
@@ -7,6 +8,8 @@ import { PendingPhotos } from "./pending-photos";
 // Recovery stays accessible even when an event is deleted or the user leaves it.
 export function PhotoRecovery() {
   const [owner, setOwner] = useState<string | null>(null);
+  // An event page shows its own waiting photos under its title.
+  const here = usePathname().match(/^\/events\/([0-9a-f-]{36})(?:\/|$)/)?.[1];
   useEffect(() => {
     if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY) return;
     let closed = false;
@@ -19,5 +22,5 @@ export function PhotoRecovery() {
     });
     return () => { closed = true; subscription.unsubscribe(); };
   }, []);
-  return owner ? <PendingPhotos key={owner} owner={owner} /> : null;
+  return owner ? <PendingPhotos key={owner} owner={owner} exclude={here} /> : null;
 }

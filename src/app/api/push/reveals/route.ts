@@ -16,7 +16,7 @@ const notConfigured = () => NextResponse.json({ sent: 0, reason: "push not confi
 
 const MESSAGES = {
   reveal: (t: Target) => ({ title: `${t.event_name} is out`, body: "Everyone's shots, side by side.", tag: `reveal-${t.event_id}` }),
-  start: (t: Target) => ({ title: `${t.event_name} is today`, body: "Your challenge is ready.", tag: `start-${t.event_id}` }),
+  start: (t: Target) => ({ title: `${t.event_name} is today`, body: "Roll Calls are open from now.", tag: `start-${t.event_id}` }),
 };
 
 async function send(request: NextRequest, batches: { kind: keyof typeof MESSAGES; targets: Target[] }[]) {

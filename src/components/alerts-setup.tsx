@@ -131,7 +131,7 @@ export function AlertsSetup({
   }
 
   return (
-    <section className="card t-blue" id="alerts">
+    <section className="card" id="alerts">
       <h2>Alerts</h2>
       {mode === "ask" && (
         <>

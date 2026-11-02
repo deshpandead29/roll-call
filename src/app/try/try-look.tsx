@@ -36,7 +36,7 @@ export function TryLook() {
   }
 
   return (
-    <section className="card t-lime">
+    <section className="card">
       {url && (
         <figure className="try-out">
           {/* eslint-disable-next-line @next/next/no-img-element */}

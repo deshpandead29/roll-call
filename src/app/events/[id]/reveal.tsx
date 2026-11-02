@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from "react";
 import { AwayCard } from "@/components/away-card";
-import { tilt } from "@/lib/events";
 import type { Item, Reveal, Tile } from "./build-reveal";
 import { PhotoActions } from "./photo-actions";
 
@@ -39,11 +38,17 @@ export function RevealView({ data, actions = false, canModerate = false }: { dat
     return () => io.disconnect();
   }, [animate, tab]);
 
+  // The full-size view: focus moves in, Escape closes, focus returns to the print.
+  const opener = useRef<HTMLElement | null>(null);
   useEffect(() => {
     if (!open) return;
+    const back = opener.current;
     const close = (e: KeyboardEvent) => e.key === "Escape" && setOpen(null);
     document.addEventListener("keydown", close);
-    return () => document.removeEventListener("keydown", close);
+    return () => {
+      document.removeEventListener("keydown", close);
+      back?.focus();
+    };
   }, [open]);
 
   const tile = (t: Tile) => {
@@ -51,14 +56,16 @@ export function RevealView({ data, actions = false, canModerate = false }: { dat
       <button
         key={t.id}
         className={`ph${animate ? " wait" : ""}`}
-        style={{ "--r": `${tilt(t.id, 2.6).toFixed(1)}deg` } as React.CSSProperties}
         aria-label={`Open ${t.who}'s shot`}
-        onClick={() => setOpen(t)}
+        onClick={(e) => {
+          opener.current = e.currentTarget;
+          setOpen(t);
+        }}
       >
-        {t.tag && <span className="tag pill">{t.tag}</span>}
         {t.late && <span className="late pill orange">late</span>}
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={t.url} alt={`${t.who}: ${t.mission}`} />
+        {t.tag && <span className="cap">{t.tag}</span>}
       </button>
     );
   };
@@ -73,6 +80,22 @@ export function RevealView({ data, actions = false, canModerate = false }: { dat
       </div>
     );
 
+  // People who missed a moment: small, after the photos, never a photo-sized slot.
+  const missed = (items: Item[]) => {
+    const away = items.filter((it): it is Extract<Item, { type: "away" }> => it.type === "away");
+    if (!away.length) return null;
+    return (
+      <ul className="missed" aria-label="Not in this one">
+        {away.map((a) => (
+          <li key={a.name}>
+            <AwayCard name={a.name} url={a.url} reason={a.reason} small />
+          </li>
+        ))}
+      </ul>
+    );
+  };
+  const shown = (items: Item[]) => items.filter((it) => it.type !== "away");
+
   function switchTab(next: "moments" | "people") {
     setAnimate(false);
     setTab(next);
@@ -80,21 +103,15 @@ export function RevealView({ data, actions = false, canModerate = false }: { dat
 
   return (
     <div className="stack-lg" ref={root}>
-      <section className="card t-lime">
-        <div className="top">
-          <h2>It&apos;s out</h2>
-          <span className="big">{data.total}</span>
-        </div>
-        <p className="muted small">
-          {data.total} shot{data.total === 1 ? "" : "s"}
-          {data.calls > 0 && ` · ${data.calls} Roll Call${data.calls === 1 ? "" : "s"}`}
-        </p>
-      </section>
+      <p className="muted">
+        {data.total} photo{data.total === 1 ? "" : "s"}
+        {data.calls > 0 && ` · ${data.calls} Roll Call${data.calls === 1 ? "" : "s"}`}
+      </p>
 
-      {note && <p className="hand blue" role="status">{note}</p>}
+      {note && <p className="note" role="status">{note}</p>}
 
       {data.total === 0 && data.calls === 0 ? (
-        <div className="empty">No shots this time.</div>
+        <div className="empty">No photos this time.</div>
       ) : (
         <>
           <div className="tabs" role="group" aria-label="View">
@@ -107,46 +124,47 @@ export function RevealView({ data, actions = false, canModerate = false }: { dat
                 <section key={s.key} className={`card ${s.tape}`}>
                   <div className="top">
                     <h2>{s.title}</h2>
-                    {s.aside && <span className="hand ink">{s.aside}</span>}
+                    {s.aside && <span className="muted small">{s.aside}</span>}
                   </div>
                   {s.blocks.map((b, k) => (
                     <div key={k} className={`sect${s.key === "calls" ? " moment" : ""}`}>
                       {b.label && (s.key === "calls" || s.key === "recreate" ? <p className="task-sm">{b.label}</p> : <span className="label">{b.label}</span>)}
-                      {b.sub && <p className="hand ink small">{b.sub}</p>}
+                      {b.sub && <p className="muted small">{b.sub}</p>}
                       {b.orig ? (
                         <div className="twoup">
                           <figure>
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img className="orig" src={b.orig.src} alt={b.orig.alt} />
-                            <figcaption className="hand small">original</figcaption>
+                            <figcaption className="muted small">Original</figcaption>
                           </figure>
                           <figure>
-                            {b.items.map(item)}
-                            <figcaption className="hand small">yours</figcaption>
+                            {shown(b.items).map(item)}
+                            <figcaption className="muted small">Yours</figcaption>
                           </figure>
                         </div>
                       ) : (
-                        <div className={b.layout}>{b.items.map(item)}</div>
+                        <div className={b.layout}>{shown(b.items).map(item)}</div>
                       )}
-                      {b.foot && <p className={b.layout === "spell" ? "hand small" : "muted small"}>{b.foot}</p>}
+                      {missed(b.items)}
+                      {b.foot && <p className="muted small">{b.foot}</p>}
                     </div>
                   ))}
                 </section>
               ))
-            : data.people.map((p, i) => (
-                <section key={p.name} className={`card ${["", "t-blue", "t-lime"][i % 3]}`}>
+            : data.people.map((p) => (
+                <section key={p.name} className="card">
                   <div className="top">
                     <h2>{p.name}</h2>
-                    <span className="hand ink">{p.tiles.length}</span>
+                    <span className="muted small">{p.tiles.length}</span>
                   </div>
-                  {p.tiles.length ? <div className="board">{p.tiles.map(tile)}</div> : <p className="muted">No shots.</p>}
+                  {p.tiles.length ? <div className="board">{p.tiles.map(tile)}</div> : <p className="muted">No photos.</p>}
                 </section>
               ))}
         </>
       )}
 
       {open && (
-        <div className="lightbox" role="dialog" aria-label={`${open.who}: ${open.mission}`} onClick={(e) => e.target === e.currentTarget && setOpen(null)}>
+        <div className="lightbox" role="dialog" aria-modal="true" aria-label={`${open.who}: ${open.mission}`} onClick={(e) => e.target === e.currentTarget && setOpen(null)}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={open.url} alt={`${open.who}: ${open.mission}`} />
           <div className="row">

@@ -23,6 +23,8 @@ async function token(ctx) {
 }
 const rpc = async (tok, fn, a) => { const r = await fetch(`${U}/rest/v1/rpc/${fn}`, { method: "POST", headers: { apikey: K, Authorization: `Bearer ${tok}`, "content-type": "application/json" }, body: JSON.stringify(a) }); const t = await r.text(); try { return JSON.parse(t); } catch { return t; } };
 const panel = (p) => p.locator('section[aria-label="Photos waiting to send"]');
+// Each open call has its own card; "Not now" each one.
+const notNow = async (p) => { while (await p.locator(".alert").count()) { await p.locator(".alert").first().getByRole("button", { name: "Not now" }).click(); await p.waitForTimeout(100); } };
 
 const browser = await pw.chromium.launch(chromiumPath ? { executablePath: chromiumPath } : {});
 const phone = { ...pw.devices["iPhone 13"] }; delete phone.defaultBrowserType;
@@ -65,17 +67,17 @@ try {
 
   // 3. Capture, online
   await pick(g, g.locator(".mission button.shutter").first(), IMG);
-  await g.getByText("Added. It develops at the reveal.").waitFor({ timeout: 30000 });
+  await g.getByText("Added. It opens with everyone else's.").waitFor({ timeout: 30000 });
   ok(sql(`select count(*) from photos where member_id='${gm}'`) === "1", "challenge photo saved online");
 
   // 4. Failed upload, reload, recovery
   await g.route("**/storage/v1/object/photos/**", (r) => r.abort("failed"));
   await pick(g, g.locator(".mission button.shutter").first(), IMG2);
-  await g.getByText(/Saved on this device/).first().waitFor({ timeout: 30000 });
+  await g.getByText(/Not sent yet/).first().waitFor({ timeout: 30000 });
   await panel(g).waitFor(); await shot(g, "guest-upload-failed");
   ok(sql(`select count(*) from photos where member_id='${gm}'`) === "1", "failed upload: nothing saved on the server yet");
   await g.reload(); await panel(g).waitFor({ timeout: 15000 });
-  ok(await panel(g).getByText(/Couldn't send yet|Waiting to send|Uploading/).count() > 0, "after reload the photo is still waiting on the device");
+  ok(await panel(g).getByText(/Not sent yet|Waiting to send|Sending/).count() > 0, "after reload the photo is still waiting on the device");
   await g.waitForTimeout(2000);
   ok(sql(`select count(*) from photos where member_id='${gm}'`) === "1", "automatic retry while still offline doesn't save anything");
   await g.unroute("**/storage/v1/object/photos/**");
@@ -97,7 +99,7 @@ try {
   let lost = 0;
   await g.route("**/rest/v1/rpc/answer_roll", async (r) => { if (lost++ === 0) { await r.fetch(); await r.abort("failed"); } else await r.continue(); });
   await pick(g, g.locator(".alert button.shutter"), IMG2);
-  await g.getByText(/See waiting photos above/).first().waitFor({ timeout: 30000 });
+  await g.getByText(/saved on this phone and will send/).first().waitFor({ timeout: 30000 });
   ok(sql(`select count(*) from photos where roll_call_id='${call1}' and member_id='${gm}'`) === "1", "lost response: the server did save the answer");
   await shot(g, "guest-answer-lost-response");
   // Auto-retry runs on load and every 30s; reload to trigger it.
@@ -111,7 +113,7 @@ try {
   await g.reload();
   await g.route("**/rest/v1/rpc/call_roll", (r) => r.abort("failed"));
   await g.locator(".callbtn").click(); await pick(g, g.locator(".sheet button.shutter"), IMG);
-  await g.getByText(/Call status isn't confirmed/).waitFor({ timeout: 30000 }); await shot(g, "guest-call-unsent");
+  await g.getByText(/Your call hasn't started/).waitFor({ timeout: 30000 }); await shot(g, "guest-call-unsent");
   await g.unroute("**/rest/v1/rpc/call_roll");
   const before = sql(`select count(*) from roll_calls where event_id='${eid}'`);
   await g.reload(); await g.waitForTimeout(35000);
@@ -121,17 +123,17 @@ try {
   ok(Number(sql(`select count(*) from roll_calls where event_id='${eid}'`)) === Number(before) + 1, "manual Retry starts the call once");
 
   // 7. A call refused by the one-minute guard
-  await g.reload(); if (await g.locator(".alert").count()) await g.getByRole("button", { name: "Not now" }).click();
+  await g.reload(); await notNow(g);
   const callBtn = g.locator(".callbtn");
   note(`straight after a call, guest's Call roll button is ${await callBtn.isDisabled() ? "disabled" : "enabled"}: "${await g.locator(".rc-card p.small").first().innerText()}"`);
   // Simulate a race: the page thinks calling is allowed, the server refuses (another call landed first).
   sql(`update roll_calls set called_at = called_at - interval '2 minutes' where event_id='${eid}'`);
-  await g.reload(); if (await g.locator(".alert").count()) await g.getByRole("button", { name: "Not now" }).click();
+  await g.reload(); await notNow(g);
   await g.locator(".callbtn").click();
   const racePid = crypto.randomUUID();
   const raceCall = await rpc(HOST.tok, "call_roll", { p_event_id: eid, p_photo_id: racePid, p_storage_path: `${eid}/${HM}/${racePid}.jpg`, p_frame: 9, p_recipients: null });
   await pick(g, g.locator(".sheet button.shutter"), IMG);
-  await g.getByText(/Call status isn't confirmed|Saved on this device/).first().waitFor({ timeout: 30000 });
+  await g.getByText(/Your call hasn't started|Not sent yet/).first().waitFor({ timeout: 30000 });
   await panel(g).waitFor(); await shot(g, "guest-call-guarded");
   const guardedRetry = await panel(g).getByRole("button", { name: "Retry" }).count();
   const guardedMsg = await panel(g).locator("p.small[role=status]").first().innerText();
@@ -155,9 +157,9 @@ try {
   sql(`update roll_calls set called_at = now() - interval '14 minutes' where id='${call2}'`);
   await g.reload(); await g.locator(".alert, .ask").first().waitFor({ timeout: 15000 });
   await G.setOffline(true);
-  const shootBtn = (await g.locator(".alert").count()) ? g.locator(".alert button.shutter") : g.locator(".ask button.shutter");
+  const shootBtn = (await g.locator(".alert").count()) ? g.locator(".alert button.shutter").first() : g.locator(".ask button.shutter").first();
   await pick(g, shootBtn, IMG2);
-  await g.getByText(/See waiting photos above/).first().waitFor({ timeout: 30000 });
+  await g.getByText(/saved on this phone and will send/).first().waitFor({ timeout: 30000 });
   sql(`update roll_calls set called_at = now() - interval '16 minutes' where id='${call2}'`);
   await G.setOffline(false);
   // Coming back online retries replies automatically; click Retry only if it hasn't yet.
@@ -172,10 +174,10 @@ try {
 
   // 9. Host extras
   sql(`update roll_calls set called_at = called_at - interval '2 minutes' where event_id='${eid}'`);
-  await g.reload(); if (await g.locator(".alert").count()) await g.getByRole("button", { name: "Not now" }).click();
+  await g.reload(); await notNow(g);
   ok(await g.locator(".callbtn").isDisabled() && /host can start an extra/i.test(await g.locator(".rc-card").innerText()), "guest: shared calls used up, says only the host can add one");
   await shot(g, "guest-budget-used");
-  await h.reload(); if (await h.locator(".alert").count()) await h.getByRole("button", { name: "Not now" }).click();
+  await h.reload(); await notNow(h);
   await h.locator(".callbtn").click(); await shot(h, "host-extra-confirm");
   ok(await h.getByText("All shared calls are used. Start an extra as the host?").count() === 1, "host is asked to confirm an extra");
   await pick(h, h.locator(".sheet button.shutter"), IMG);

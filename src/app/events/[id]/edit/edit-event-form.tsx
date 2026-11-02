@@ -81,7 +81,7 @@ export function EditEventForm({ ev, members, coming: initial }: { ev: Ev; member
   }
 
   return (
-    <section className="card t-lime">
+    <section className="card">
       <form className="stack" onSubmit={save} noValidate>
         <label className="field">
           <span className="label">Name</span>

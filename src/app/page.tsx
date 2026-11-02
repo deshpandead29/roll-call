@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AlertsSetup } from "@/components/alerts-setup";
-import { HeroCollage } from "@/components/hero-collage";
 import { ProfileLink } from "@/components/profile-link";
 import { eventStatus, formatDate, type EventType } from "@/lib/events";
 import { createClient } from "@/lib/supabase/server";
@@ -31,12 +30,15 @@ export default async function Home() {
       <section className="hero">
         <p className="wordmark">Roll Call</p>
         <h1>One moment. Everyone&apos;s side.</h1>
-        <p className="lede">Start a Roll Call for your friends to take a photo wherever they are. See the photos together when your event reveals.</p>
-        <HeroCollage />
+        <p className="lede">A shared camera for one night out with your friends.</p>
+        <ol className="steps lede-steps">
+          <li>Make an event and send the link to the group chat.</li>
+          <li>When someone calls roll, everyone takes a photo of that moment.</li>
+          <li>Nobody sees the photos until the next morning. Then you see them all together.</li>
+        </ol>
         <div className="row">
-          <Link className="button shutter" href="/sign-in">Get started</Link>
-          <Link className="button ghost" href="/try">Try the look</Link>
-          <Link className="link" href="/sample">See a sample</Link>
+          <Link className="button" href="/sign-in">Get started</Link>
+          <Link className="link" href="/sample">See an example</Link>
         </div>
       </section>
     );
@@ -89,7 +91,7 @@ export default async function Home() {
       <AlertsSetup isAnonymous={!!claims.is_anonymous} />
 
       {now.length > 0 && (
-        <section className="card t-blue">
+        <section className="card">
           <h2>Now</h2>
           <div className="trips">
             {now.map((e) => (
@@ -132,8 +134,7 @@ export default async function Home() {
           <div className="empty">No groups yet. Make one, or open the invite link a friend sent you.</div>
         )}
         <div className="row">
-          <Link className="button shutter" href="/groups/new">New group</Link>
-          <Link className="link" href="/sample">See a sample</Link>
+          <Link className="button" href="/groups/new">New group</Link>
         </div>
       </section>
     </>

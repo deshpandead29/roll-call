@@ -94,7 +94,7 @@ Research behind these is in `docs/research.md`.
 
 ## Design
 
-Scrapbook UI over a clean base: a dotted notebook page, white cards held on with washi tape, hand-drawn marks used sparingly for emphasis (rough-notation circles and underlines, tally marks), one bold pink Call roll button.
+A plain, warm base: off-white page, white cards with a hairline border, nothing tilted or taped, one pink accent (Call roll, the shutter dot). The character lives in the photos: the print look, film negatives before the reveal, handwriting only on the print itself. Images in the app are the group's own photos and the Recreate paintings; stock photos appear only on the labelled example (`/sample`). Rationale and before/after: `docs/simplify/README.md`.
 
 - Tokens: copy the `:root` block from the prototype. It defines light and dark themes (dark mode is required).
 - Fonts: Bricolage Grotesque (display, variable width 78–85), Instrument Sans (body), Excalifont (handwriting, OFL; taken from the `@excalidraw/excalidraw` package, Latin subset).
@@ -113,7 +113,7 @@ Research in `docs/research.md` (layout and navigation). Rules that keep pages li
 - Lists stay short: a group shows its three latest reveals and folds the rest under "Older"; "So far" lists people with shots and puts everyone else on one line; People is a compact list, not a wall of away cards.
 - First-timers get a quick setup at `/welcome` straight after signing up: their name, then optional alerts ("Get the buzz", with the home-screen steps on iPhone, where web push needs the app on the home screen). People joining from an invite give their name on the invite, so they skip that step. Wherever an iPhone can't buzz yet, the group and event pages say so. Then a short "How it works" card on their first event, once per device.
 - Hosts change an event at `/events/[id]/edit` (from Details): name, dates, who's coming, honoree, letter-day word; only the name after the reveal. Anyone who's already shot stays on. Guests can leave an event from Details before the reveal; their shots from it go too.
-- Anticipation and endings (research: `docs/research.md`, "Interest over time"): upcoming events count down ("in 5 days") and offer Try the look while you wait; everyone on an event gets "Sam's 30th is today" from 09:00 on day one; the reveal ends with the group's next event or "Plan the next one". When an event reveals, everyone on it gets "Lisbon is out".
+- Anticipation and endings (research: `docs/research.md`, "Interest over time"): upcoming events count down ("in 5 days"); everyone on an event gets "Sam's 30th is today" from 09:00 on day one; the reveal ends with the group's next event or "Plan the next one". When an event reveals, everyone on it gets "Lisbon is out".
 - No more than two levels: a page plus one fold or one linked page.
 
 ## Build plan

@@ -74,7 +74,7 @@ export default async function EventDetailsPage({ params }: { params: Promise<{ i
         </p>
       </section>
 
-      <section className="card t-blue">
+      <section className="card">
         <dl className="facts">
           <dt className="label">Who&apos;s coming</dt>
           <dd>
@@ -120,7 +120,7 @@ export default async function EventDetailsPage({ params }: { params: Promise<{ i
       </section>
 
       {!ev.revealed && invite && (
-        <section className="card t-lime">
+        <section className="card">
           <h2>Invite to this event</h2>
           <p className="muted small">This link joins friends to the group and takes them straight to {ev.name}.</p>
           <InviteLink url={invite} groupName={ev.name} />

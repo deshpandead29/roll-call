@@ -60,9 +60,9 @@ export function Recreate({
         eventId, memberId, frame: nextFrame, who: myName, today,
         mission: r.title, accent: ACCENT.recreate,
       }, { type: "photo", row: { day, kind: "recreate", mission: r.title, recreate_id: r.id, starring: count } }, userId);
-      setNote("Saved on this device. Uploading…");
+      setNote("Saved on this phone. Sending…");
       const sent = await sendPending(photo);
-      setNote(sent ? "Added. See it next to the original at the reveal." : "Saved on this device. See waiting photos above.");
+      setNote(sent ? "Added. See it next to the original at the reveal." : "Not sent yet. It's saved on this phone and will send. See above.");
       // Refreshing offline would swap the app for the browser's error page.
       if (sent) router.refresh();
     } catch (x) {
@@ -74,17 +74,15 @@ export function Recreate({
 
   return (
     <div className="mission recreate">
-      <span className="dot-ic lg" style={{ background: "#7A4FD0", color: "#fff" }} aria-hidden="true">art</span>
-      <div className="body">
+            <div className="body">
         {!isDirector ? (
           <>
-            <span className="label">Recreate</span>
-            <p className="task">{director}&apos;s directing</p>
-            <p className="muted small">If they grab you, go with it.</p>
+            <p className="muted small">{director} is directing a recreation. If they grab you, go with it.</p>
           </>
         ) : (
-          <>
-            <span className="label">You&apos;re directing</span>
+          // The painting is a reference the director needs, so it stays, one tap in.
+          <details className="rec">
+            <summary className="label">You&apos;re directing a recreation</summary>
             {r ? (
               <>
                 <p className="task">{r.title}</p>
@@ -131,19 +129,18 @@ export function Recreate({
                     </div>
                   ))}
                 </div>
-                <span className="hand ink small">develops at the reveal</span>
               </div>
             )}
             <div className="row">
               <button className="shutter" disabled={disabled || busy || !r} onClick={() => input.current?.click()}>
-                {busy ? "Printing…" : "Shoot"}
+                {busy ? "Saving…" : "Take photo"}
               </button>
               <button className="ghost" disabled={busy} onClick={() => setOffset((o) => o + 1)}>Another</button>
             </div>
-            {note && <p className="hand blue" role="status">{note}</p>}
+            {note && <p className="note" role="status">{note}</p>}
             {error && <p className="error small" role="alert">{error}</p>}
             <input ref={input} type="file" accept="image/*" capture="environment" hidden onChange={onFile} />
-          </>
+          </details>
         )}
       </div>
     </div>

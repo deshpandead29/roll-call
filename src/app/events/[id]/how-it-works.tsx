@@ -18,7 +18,7 @@ const subscribe = (fn: () => void) => {
   return () => listeners.delete(fn);
 };
 
-export function HowItWorks({ reveal, trip }: { reveal: string; trip: boolean }) {
+export function HowItWorks({ reveal }: { reveal: string }) {
   const hidden = useSyncExternalStore(subscribe, seen, () => true);
   if (hidden) return null;
 
@@ -30,16 +30,15 @@ export function HowItWorks({ reveal, trip }: { reveal: string; trip: boolean }) 
   }
 
   return (
-    <section className="card t-lime">
+    <section className="card how">
       <h2>How it works</h2>
       <ol className="steps">
-        <li>When someone calls roll, take a photo of what&apos;s in front of you. Alerts can notify you when enabled on your phone.</li>
-        <li>Start sending within 2 minutes to answer on time, or within 15 minutes for a late answer. Once accepted, slow uploads have 10 minutes to finish.</li>
-        <li>{trip ? "Three optional challenges a day" : "One optional challenge"}, below. Try {trip ? "them" : "it"} whenever you like.</li>
-        <li>Nobody sees anyone&apos;s photos until the reveal, {reveal}.</li>
+        <li>When a friend calls roll, take a photo of where you are. Within 2 minutes is on time; up to 15 still counts.</li>
+        <li>The challenge is optional. Do it whenever you like.</li>
+        <li>Nobody sees anyone&apos;s photos until {reveal}.</li>
       </ol>
       <div className="row">
-        <button className="ghost" onClick={dismiss}>Got it</button>
+        <button className="ghost sm" onClick={dismiss}>Got it</button>
       </div>
     </section>
   );

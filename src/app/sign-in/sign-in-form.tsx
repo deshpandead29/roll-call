@@ -54,7 +54,7 @@ export function SignInForm({ next, linkFailed }: { next: string; linkFailed: boo
 
   if (sent) {
     return (
-      <section className="card t-blue">
+      <section className="card">
         <h2>Check your email</h2>
         <p className="muted">
           Sent to {email.trim()}. Type the code here, or tap the link in the email on this device.

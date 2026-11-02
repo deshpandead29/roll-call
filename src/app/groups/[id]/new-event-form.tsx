@@ -64,7 +64,7 @@ export function NewEventForm({ groupId, timeZone, members }: { groupId: string; 
   }
 
   return (
-    <section className="card t-lime">
+    <section className="card">
       <form className="stack" onSubmit={submit} noValidate>
         <div className="chips" role="group" aria-label="Type">
           {(Object.keys(TYPES) as EventType[]).map((k) => (

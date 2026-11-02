@@ -37,7 +37,7 @@ export default async function PeoplePage({ params }: { params: Promise<{ id: str
 
   // Up top while people still need to join; below the list once everyone has.
   const invite = (
-    <section className="card t-blue">
+    <section className="card">
       <h2>Invite</h2>
       <p className="muted small">
         Anyone with this link can join {group.name}.

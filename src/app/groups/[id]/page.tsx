@@ -89,7 +89,7 @@ export default async function GroupPage({ params }: { params: Promise<{ id: stri
       <AlertsSetup isAnonymous={!!auth.claims.is_anonymous} compact />
 
       {invite && (
-        <section className="card t-blue">
+        <section className="card">
           <h2>Invite your group</h2>
           <p className="muted small">Nobody else has joined yet. Send them this link.</p>
           <InviteLink url={invite} groupName={group.name} />
@@ -120,7 +120,7 @@ export default async function GroupPage({ params }: { params: Promise<{ id: stri
       </section>
 
       {!me.away_card_path && (
-        <section className="card t-lime">
+        <section className="card">
           <h2>Add your away card</h2>
           <p className="muted small">A selfie that fills your slot if you miss a Roll Call. One for all your groups, in your profile.</p>
           <div className="row">

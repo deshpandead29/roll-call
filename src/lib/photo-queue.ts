@@ -92,7 +92,7 @@ export async function sendPending(photo: PendingPhoto): Promise<boolean> {
   } catch (error) {
     await persist({ ...photo, blocked: error instanceof RejectedPhoto,
       error: error instanceof RejectedPhoto || error instanceof RetryLater ? error.message
-        : "Couldn't send yet. Your photo is saved on this device." });
+        : "Not sent yet. It's saved on this phone." });
     return false;
   } finally {
     active.delete(photo.id);

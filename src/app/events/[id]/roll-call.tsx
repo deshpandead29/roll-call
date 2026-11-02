@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore, useTransition } from "react";
 import { hhmm } from "@/lib/events";
 import { saveCapture, sendPending } from "@/lib/photo-queue";
 import type { EventType } from "@/lib/events";
@@ -50,6 +50,19 @@ const clock = () => Date.now();
 const pad = (n: number) => String(n).padStart(2, "0");
 const mins = (ms: number) => Math.max(1, Math.ceil(ms / MIN));
 
+const notNowListeners = new Set<() => void>();
+const subscribeNotNow = (fn: () => void) => {
+  notNowListeners.add(fn);
+  return () => notNowListeners.delete(fn);
+};
+const readNotNow = (key: string) => {
+  try {
+    return sessionStorage.getItem(key) ?? "[]";
+  } catch {
+    return "[]";
+  }
+};
+
 // Epoch ms for `hour`:00 on `date` in `timeZone`.
 function zoned(date: string, hour: number, timeZone: string) {
   const guess = Date.UTC(+date.slice(0, 4), +date.slice(5, 7) - 1, +date.slice(8, 10), hour);
@@ -81,6 +94,7 @@ export function RollCall({
   shots,
   nextFrame,
   userId,
+  reveal,
 }: {
   eventId: string;
   type: EventType;
@@ -92,6 +106,7 @@ export function RollCall({
   shots: Shot[];
   nextFrame: number;
   userId: string;
+  reveal: string;
 }) {
   const router = useRouter();
   const input = useRef<HTMLInputElement>(null);
@@ -101,8 +116,16 @@ export function RollCall({
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState("");
   const [error, setError] = useState("");
-  const [dismissed, setDismissed] = useState<string[]>([]);
-  // Calls you've just answered, hidden before the refresh lands.
+  // "Not now" sticks for that call on this device, so a reload doesn't bring it back.
+  const notNowKey = `rc-not-now:${eventId}`;
+  const dismissedRaw = useSyncExternalStore(subscribeNotNow, () => readNotNow(notNowKey), () => "[]");
+  const dismissed = JSON.parse(dismissedRaw) as string[];
+  function notNow(id: string) {
+    try {
+      sessionStorage.setItem(notNowKey, JSON.stringify([...dismissed, id]));
+    } catch {}
+    notNowListeners.forEach((fn) => fn());
+  }
   const [answered, setAnswered] = useState<string[]>([]);
   const [refreshing, startRefresh] = useTransition();
 
@@ -152,7 +175,7 @@ export function RollCall({
   };
   const isHome = (id: string) => !!statusOf(id)?.home;
   const others = members.filter((m) => m.id !== me.id);
-  const pending = data.calls
+  const open = data.calls
     .filter(
       (c) =>
         c.caller_member_id !== me.id &&
@@ -161,7 +184,7 @@ export function RollCall({
         now - Date.parse(c.called_at) < 15 * MIN &&
         !c.mine_answered,
     )
-    .pop();
+    .reverse();
   // Nudges before calling: one at a time, first match wins.
   function nudge(): Sheet {
     const hour = Number(new Intl.DateTimeFormat("en-GB", { hour: "numeric", hourCycle: "h23", timeZone }).format(now));
@@ -171,7 +194,7 @@ export function RollCall({
       others.length >= 2 && out.length > 0 && out.length < others.length && others.length - out.length >= others.length / 2
         ? out.map((m) => m.id)
         : null;
-    const base: Sheet = { copy: "Take your photo to start this Roll Call.", yes: "Shoot", no: "Cancel", split, mode: split ? "split" : "all" };
+    const base: Sheet = { copy: "Take your photo to start the Roll Call.", yes: "Take photo", no: "Cancel", split, mode: split ? "split" : "all" };
     if (st?.extra) return { ...base, copy: "All shared calls are used. Start an extra as the host?", yes: "Start extra", no: "Cancel" };
     if (hour < 6) return { ...base, copy: `It's ${hhmm(now, timeZone)}. People are asleep.`, yes: "Call anyway", no: "Save it" };
     if (recent.length >= 3)
@@ -208,14 +231,14 @@ export function RollCall({
         eventId, memberId: me.id, frame: nextFrame, who: me.name, today,
         mission: `roll call · ${caller}`, accent: ACCENT.roll, time: hhmm(t, timeZone),
       }, j.type === "call" ? { type: "call", recipients: j.recipients } : { type: "answer", callId: j.call.id }, userId);
-      setNote("Saved on this device. Uploading…");
+      setNote("Saved on this phone. Sending…");
       const sent = await sendPending(photo);
       if (j.type === "call") setSheet(null);
       if (sent && j.type === "answer") setAnswered((a) => [...a, j.call.id]);
       setNote(sent
-        ? j.type === "call" ? "Roll Call started. Responses will appear below." : "Answer added"
-        : j.type === "call" ? "Photo saved on this device. Call status isn't confirmed. Retry above before starting another."
-          : "Saved on this device. See waiting photos above.");
+        ? j.type === "call" ? "Roll Call started." : `Added to ${caller}'s Roll Call.`
+        : j.type === "call" ? "Not sent yet. Your call hasn't started. Use Retry above before calling again."
+          : "Not sent yet. It's saved on this phone and will send. See above.");
       // Only a photo that reached the server changes the page; the waiting
       // panel updates itself, and refreshing offline would lose the app.
       if (sent) startRefresh(() => router.refresh());
@@ -250,129 +273,145 @@ export function RollCall({
   }
 
   if (!st) return null;
-  const used = st.open === null ? 0 : st.open - (st.remaining ?? 0);
-  const showAlert = pending && st.live && !isSnoozed(me.id) && !isHome(me.id) && !dismissed.includes(pending.id);
-  const left = pending ? Date.parse(pending.called_at) + 2 * MIN - now : 0;
+  const live = st.live && !isSnoozed(me.id) && !isHome(me.id);
+  const incoming = live ? open.filter((c) => !dismissed.includes(c.id)) : [];
+  const waiting = open.filter((c) => !incoming.includes(c));
+  const lastAnswered = data.calls.filter((c) => c.mine_answered || answered.includes(c.id)).pop();
+  const timing = (c: Call) => {
+    const at = Date.parse(c.called_at);
+    // Clock times, not a ticking countdown: honest, without the pressure.
+    return at + 2 * MIN > now
+      ? `Called ${hhmm(at, timeZone)} · on time until ${hhmm(at + 2 * MIN, timeZone)}, still counts until ${hhmm(at + 15 * MIN, timeZone)}`
+      : `Called ${hhmm(at, timeZone)} · late now, still counts until ${hhmm(at + 15 * MIN, timeZone)}`;
+  };
 
   return (
-    <section className="card rc-card">
-      <div className="top">
-        <h2>Roll Call</h2>
-        <span className="hand ink">{st.open === null ? "no limit" : `${st.remaining} left`}</span>
-      </div>
-      {st.open !== null && (
-        <div className="rc-dots" aria-hidden="true">
-          {Array.from({ length: st.open }, (_, k) => (
-            <span key={k} className={`rc-dot${k < used ? " used" : ""}`} />
-          ))}
-        </div>
-      )}
-      {pending && !showAlert && (
-        <div className="ask">
-          <p>
-            <strong>{name(pending.caller_member_id)} called roll</strong> · {mins(now - Date.parse(pending.called_at))} min ago
-          </p>
-          <button className="shutter" disabled={busy} onClick={() => openCamera({ type: "answer", call: pending })}>
-            {now - Date.parse(pending.called_at) > 2 * MIN ? "Shoot (late)" : "Shoot"}
-          </button>
-        </div>
-      )}
-
-      {sheet ? (
-        <div className="sheet">
-          <p className="nudge">{sheet.copy}</p>
-          {sheet.split && (
-            <div className="chips">
-              <button type="button" className="chip" aria-pressed={sheet.mode === "split"} onClick={() => setSheet({ ...sheet, mode: "split" })}>
-                Just us {sheet.split.length + 1}
-              </button>
-              <button type="button" className="chip" aria-pressed={sheet.mode === "all"} onClick={() => setSheet({ ...sheet, mode: "all" })}>
-                Everyone
-              </button>
-            </div>
-          )}
-          <p className="muted small">
-            {buzz} {buzz === 1 ? "person is" : "people are"} included for alerts. Delivery depends on their phone settings and connection.{st.extra ? " Starts an extra host call." : ""}
-          </p>
+    <>
+      {/* Answering outranks calling: an open call for you comes first. */}
+      {incoming.map((c) => (
+        <section key={c.id} className="alert" aria-labelledby={`call-${c.id}`}>
+          <p className="alert-k">Roll Call</p>
+          <h2 id={`call-${c.id}`} className="alert-t">{name(c.caller_member_id)} called roll</h2>
+          <p className="alert-c">{timing(c)}</p>
           <div className="row">
-            <button
-              className="shutter"
-              disabled={busy}
-              onClick={() => openCamera({ type: "call", recipients: sheet.split && sheet.mode === "split" ? sheet.split : null })}
-            >
-              {busy ? "Printing…" : sheet.yes}
+            <button className="shutter alert-go" disabled={busy} onClick={() => openCamera({ type: "answer", call: c })}>
+              {busy ? "Saving…" : "Take photo"}
             </button>
-            <button className="ghost" disabled={busy} onClick={() => setSheet(null)}>{sheet.no}</button>
+            <button className="link alert-no" onClick={() => notNow(c.id)}>Not now</button>
           </div>
-        </div>
-      ) : (
-        <>
-          <button className="callbtn" disabled={!st.ok || busy || refreshing} onClick={() => setSheet(nudge())}>
-            <span className="callbtn-dot" />
-            Call roll
-          </button>
-          <p className={`${st.ok ? "muted" : "hand"} small`}>
-            {st.ok
-              ? st.extra ? "All shared calls used. You can start an extra as the host." : "Anyone can call. You shoot first."
-              : st.why}
-          </p>
-        </>
-      )}
+        </section>
+      ))}
 
-      {st.live && (
-        <div className="status-row">
-          {isSnoozed(me.id) ? (
-            <>
-              <span className="hand ink">snoozed till {hhmm(statusOf(me.id)!.snooze_until!, timeZone)}</span>
-              <button className="link" onClick={() => setStatus("wake")}>Undo</button>
-            </>
-          ) : (
-            <>
-              <button className="chip" onClick={() => setStatus("1h")}>Snooze 1h</button>
-              <button className="chip" onClick={() => setStatus("night")}>Snooze tonight</button>
-            </>
-          )}
-          {type !== "trip" &&
-            (isHome(me.id) ? (
-              <button className="chip" onClick={() => setStatus("out")}>Back out</button>
-            ) : (
-              <button className="chip" onClick={() => setStatus("home")}>Going home</button>
-            ))}
+      <section className="card rc-card">
+        <div className="top">
+          <h2>Roll Call</h2>
+          <span className="muted small">{st.open === null ? "No limit" : `${st.remaining} left`}</span>
         </div>
-      )}
-      {shots.length > 0 && (
-        <div className="negs">
-          <div className="strip">
-            {shots.map((s) => (
-              <div key={s.id} className="neg">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                {s.url && <img src={s.url} alt="Your shot, as a negative" />}
-                <span className="fn">{pad(s.frame ?? 0)}</span>
+        {waiting.map((c) => (
+          <div key={c.id} className="ask">
+            <p>
+              <strong>{name(c.caller_member_id)} called roll</strong> · {mins(now - Date.parse(c.called_at))} min ago
+            </p>
+            <button className="shutter" disabled={busy} onClick={() => openCamera({ type: "answer", call: c })}>
+              {now - Date.parse(c.called_at) > 2 * MIN ? "Take photo (late)" : "Take photo"}
+            </button>
+          </div>
+        ))}
+
+        {sheet ? (
+          <div className="sheet">
+            <p className="nudge">{sheet.copy}</p>
+            {sheet.split && (
+              <div className="chips">
+                <button type="button" className="chip" aria-pressed={sheet.mode === "split"} onClick={() => setSheet({ ...sheet, mode: "split" })}>
+                  Just us {sheet.split.length + 1}
+                </button>
+                <button type="button" className="chip" aria-pressed={sheet.mode === "all"} onClick={() => setSheet({ ...sheet, mode: "all" })}>
+                  Everyone
+                </button>
               </div>
-            ))}
+            )}
+            <p className="muted small">
+              Alerts go to {buzz} {buzz === 1 ? "person" : "people"}, if their phones allow it.{st.extra ? " This is an extra host call." : ""}
+            </p>
+            <div className="row">
+              <button
+                className="shutter"
+                disabled={busy}
+                onClick={() => openCamera({ type: "call", recipients: sheet.split && sheet.mode === "split" ? sheet.split : null })}
+              >
+                {busy ? "Saving…" : sheet.yes}
+              </button>
+              <button className="ghost" disabled={busy} onClick={() => setSheet(null)}>{sheet.no}</button>
+            </div>
           </div>
-          <span className="hand ink small">develops at the reveal</span>
-        </div>
-      )}
-
-      {note && <p className="hand blue" role="status">{note}</p>}
-      {error && <p className="error small" role="alert">{error}</p>}
-      <input ref={input} type="file" accept="image/*" capture="environment" hidden onChange={onFile} />
-
-      {showAlert && (
-        <div className="alert" role="alertdialog" aria-label="Roll Call">
-          <p className="alert-k">roll call</p>
-          <p className="alert-t">{name(pending.caller_member_id)} called roll</p>
-          <p className="alert-c">{left > 0 ? `${Math.floor(left / MIN)}:${pad(Math.floor((left % MIN) / 1000))} to answer on time` : "Late, still counts"}</p>
-          <p className="small">Start sending within 15 minutes of the call. Once accepted, you have 10 minutes to finish uploading.</p>
-          <div className="row">
-            <button className="shutter alert-go" disabled={busy} onClick={() => openCamera({ type: "answer", call: pending })}>
-              {busy ? "Printing…" : "Shoot"}
+        ) : (
+          <>
+            <button
+              className={`callbtn${incoming.length || waiting.length ? " quiet" : ""}`}
+              disabled={!st.ok || busy || refreshing}
+              onClick={() => setSheet(nudge())}
+            >
+              Call roll
             </button>
-            <button className="ghost alert-no" onClick={() => setDismissed((d) => [...d, pending.id])}>Not now</button>
+            {/* With a call waiting for you, answering is the job; why you can't call can wait. */}
+            {!(incoming.length || waiting.length) && <p className="muted small">
+              {st.ok
+                ? st.extra ? "Shared calls are used up. As the host you can start an extra." : "Anyone can call. You take the first photo."
+                : st.why}
+            </p>}
+          </>
+        )}
+
+        {(lastAnswered || shots.length > 0) && (
+          <div className="done">
+            {lastAnswered && <p>You answered {name(lastAnswered.caller_member_id)}&apos;s Roll Call.</p>}
+            {shots.length > 0 && (
+              <div className="strip" aria-label={`Your Roll Call photos, ${shots.length}, shown as negatives`}>
+                {shots.map((s) => (
+                  <div key={s.id} className="neg">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    {s.url && <img src={s.url} alt="" />}
+                    <span className="fn">{pad(s.frame ?? 0)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+            <p className="muted small">Everyone&apos;s photos open {reveal}.</p>
           </div>
-        </div>
-      )}
-    </section>
+        )}
+
+        {note && <p className="note" role="status">{note}</p>}
+        {error && <p className="error small" role="alert">{error}</p>}
+
+        {st.live &&
+          (isSnoozed(me.id) || isHome(me.id) ? (
+            <div className="status-row">
+              {isSnoozed(me.id) && (
+                <>
+                  <span className="small">Alerts paused until {hhmm(statusOf(me.id)!.snooze_until!, timeZone)}.</span>
+                  <button className="link" onClick={() => setStatus("wake")}>Undo</button>
+                </>
+              )}
+              {isHome(me.id) && (
+                <>
+                  <span className="small">You&apos;re home. No more alerts.</span>
+                  <button className="link" onClick={() => setStatus("out")}>Back out</button>
+                </>
+              )}
+            </div>
+          ) : (
+            <details className="pause">
+              <summary className="small">Pause alerts</summary>
+              <div className="status-row">
+                <button className="chip" onClick={() => setStatus("1h")}>Snooze 1h</button>
+                <button className="chip" onClick={() => setStatus("night")}>Snooze tonight</button>
+                {type !== "trip" && <button className="chip" onClick={() => setStatus("home")}>Going home</button>}
+              </div>
+            </details>
+          ))}
+        <input ref={input} type="file" accept="image/*" capture="environment" hidden onChange={onFile} />
+      </section>
+    </>
   );
 }

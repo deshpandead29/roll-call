@@ -12,7 +12,7 @@
     "typecheck": "tsc --noEmit",
     "test": "node --import tsx --test tests/*.test.mjs tests/*.test.ts",
     "test:browser": "node tests/browser/photo-recovery.mjs && node tests/browser/invitations.mjs",
-    "test:dev-stack": "node tests/dev-stack/api.mjs && node tests/dev-stack/email.mjs && node tests/dev-stack/offline.mjs && node tests/dev-stack/expired.mjs && node tests/dev-stack/journey.mjs"
+    "test:dev-stack": "node tests/dev-stack/api.mjs && node tests/dev-stack/email.mjs && node tests/dev-stack/offline.mjs && node tests/dev-stack/expired.mjs && node tests/dev-stack/journey.mjs && node tests/dev-stack/states.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",
