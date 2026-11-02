@@ -80,6 +80,7 @@ export function RollCall({
   data,
   shots,
   nextFrame,
+  userId,
 }: {
   eventId: string;
   type: EventType;
@@ -90,6 +91,7 @@ export function RollCall({
   data: RollData;
   shots: Shot[];
   nextFrame: number;
+  userId: string;
 }) {
   const router = useRouter();
   const input = useRef<HTMLInputElement>(null);
@@ -110,7 +112,7 @@ export function RollCall({
     let t: ReturnType<typeof setTimeout> | undefined;
     const refresh = () => {
       clearTimeout(t);
-      t = setTimeout(() => router.refresh(), 250);
+      t = setTimeout(() => navigator.onLine && router.refresh(), 250);
     };
     const filter = `event_id=eq.${eventId}`;
     let channel: ReturnType<typeof supabase.channel> | null = null;
@@ -129,7 +131,9 @@ export function RollCall({
         .subscribe();
     });
     const tick = setInterval(() => setNow(clock()), 1000);
-    const slow = setInterval(() => router.refresh(), 30_000);
+    // Offline, a refresh fails and Next falls back to a full page load, which
+    // swaps the app for the browser's error page. Skip it until we're back.
+    const slow = setInterval(() => navigator.onLine && router.refresh(), 30_000);
     return () => {
       clearTimeout(t);
       clearInterval(tick);
@@ -203,7 +207,7 @@ export function RollCall({
       const photo = await saveCapture(file, {
         eventId, memberId: me.id, frame: nextFrame, who: me.name, today,
         mission: `roll call · ${caller}`, accent: ACCENT.roll, time: hhmm(t, timeZone),
-      }, j.type === "call" ? { type: "call", recipients: j.recipients } : { type: "answer", callId: j.call.id });
+      }, j.type === "call" ? { type: "call", recipients: j.recipients } : { type: "answer", callId: j.call.id }, userId);
       setNote("Saved on this device. Uploading…");
       const sent = await sendPending(photo);
       if (j.type === "call") setSheet(null);
@@ -212,7 +216,9 @@ export function RollCall({
         ? j.type === "call" ? "Roll Call started. Responses will appear below." : "Answer added"
         : j.type === "call" ? "Photo saved on this device. Call status isn't confirmed. Retry above before starting another."
           : "Saved on this device. See waiting photos above.");
-      startRefresh(() => router.refresh());
+      // Only a photo that reached the server changes the page; the waiting
+      // panel updates itself, and refreshing offline would lose the app.
+      if (sent) startRefresh(() => router.refresh());
     } catch (x) {
       setError(x instanceof Error ? x.message : "Couldn't save it. Try again.");
     } finally {

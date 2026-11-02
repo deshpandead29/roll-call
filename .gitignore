@@ -48,3 +48,4 @@ supabase/.temp
 
 # copied from prototype/ at build time
 /public/prototype
+/test-results

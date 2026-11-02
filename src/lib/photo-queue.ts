@@ -5,10 +5,11 @@ import { enqueue, persist, removePending, queueChanged, type CaptureOptions, typ
 export { pendingPhotos, removePending, subscribeQueue, type PendingPhoto } from "@/lib/photo-store";
 const active = new Set<string>();
 
-export async function saveCapture(file: File, options: CaptureOptions, action: PhotoAction) {
-  const { data: { session } } = await createClient().auth.getSession();
-  if (!session) throw new Error("Sign in again before taking a photo.");
-  const photo: PendingPhoto = { id: crypto.randomUUID(), owner: session.user.id, file, options, action, createdAt: Date.now() };
+// `owner` is the signed-in user's id from the server-rendered page. Asking the
+// auth client instead can wait on the network to renew an expired token, and
+// the photo must reach the device first, signal or not.
+export async function saveCapture(file: File, options: CaptureOptions, action: PhotoAction, owner: string) {
+  const photo: PendingPhoto = { id: crypto.randomUUID(), owner, file, options, action, createdAt: Date.now() };
   try { return await enqueue(photo); }
   catch { throw new Error("Couldn't save this photo on your device. Keep it in your camera roll and try again."); }
 }
@@ -20,8 +21,11 @@ function permanent(error: { code?: string; statusCode?: string | number }) {
   return ["P0001", "P0002", "42501", "23503", "23505", "23514", "22023"].includes(error.code ?? "");
 }
 class RejectedPhoto extends Error {}
+// Refused for now, not for good: a call within a minute of another (RC429).
+class RetryLater extends Error {}
 function check(error: { message: string; code?: string; statusCode?: string | number } | null) {
   if (!error) return;
+  if (error.code === "RC429") throw new RetryLater(error.message);
   if (permanent(error)) throw new RejectedPhoto(error.message);
   if (["403", "404", "413"].includes(String(error.statusCode))) {
     throw new RejectedPhoto("This photo couldn't be added to the event. Keep a copy before discarding it.");
@@ -87,7 +91,8 @@ export async function sendPending(photo: PendingPhoto): Promise<boolean> {
     return true;
   } catch (error) {
     await persist({ ...photo, blocked: error instanceof RejectedPhoto,
-      error: error instanceof RejectedPhoto ? error.message : "Couldn't send yet. Your photo is saved on this device." });
+      error: error instanceof RejectedPhoto || error instanceof RetryLater ? error.message
+        : "Couldn't send yet. Your photo is saved on this device." });
     return false;
   } finally {
     active.delete(photo.id);

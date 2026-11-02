@@ -31,6 +31,7 @@ export function Missions({
   missions,
   shots,
   nextFrame,
+  userId,
   disabled,
   swapped = false,
 }: {
@@ -42,6 +43,7 @@ export function Missions({
   missions: Mission[];
   shots: Shot[];
   nextFrame: number;
+  userId: string;
   disabled: boolean;
   swapped?: boolean;
 }) {
@@ -72,11 +74,12 @@ export function Missions({
       const photo = await saveCapture(file, {
         eventId, memberId, frame: nextFrame, who: myName, today,
         mission: m.task, accent: ACCENT[m.kind],
-      }, { type: "photo", row: { day, kind: m.kind, mission: m.task, ...m.meta } });
+      }, { type: "photo", row: { day, kind: m.kind, mission: m.task, ...m.meta } }, userId);
       setNote("Saved on this device. Uploading…");
       const sent = await sendPending(photo);
       setNote(sent ? "Added. It develops at the reveal." : "Saved on this device. See waiting photos above.");
-      router.refresh();
+      // Refreshing offline would swap the app for the browser's error page.
+      if (sent) router.refresh();
     } catch (x) {
       setError(x instanceof Error && x.message !== "encode" ? x.message : "Couldn't save it. Try again.");
     } finally {

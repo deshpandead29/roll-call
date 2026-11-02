@@ -67,6 +67,11 @@ test('shared budget allows repeat callers, blocks rapid repeats, permits only ho
     await query("update public.roll_calls set called_at=now()-interval '2 minutes' where event_id=$1", [event]);
   }
   assert.equal(await scalar('select count(*)::int from public.roll_calls where event_id=$1', [event]), 3);
+  // The one-minute guard is a "try again shortly" refusal (RC429), not a final one.
+  await query("update public.roll_calls set called_at=now() where event_id=$1 and id=(select id from public.roll_calls where event_id=$1 order by called_at desc limit 1)", [event]);
+  const guarded = uuid();
+  await assert.rejects(() => query('select public.call_roll($1,$2,$3,1)', [event, guarded, photoPath(event, guestMember, guarded)]), (e) => e.code === 'RC429');
+  await query("update public.roll_calls set called_at=now()-interval '2 minutes' where event_id=$1", [event]);
   const guestState = await scalar('select private.roll_check($1,$2)', [event, guestMember]);
   assert.equal(guestState.ok, false); assert.equal(guestState.can_ask, false);
   await as(host);

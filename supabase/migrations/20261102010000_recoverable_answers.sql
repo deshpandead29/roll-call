@@ -68,6 +68,11 @@ begin
 
   st := private.roll_check(p_event_id, me);
   if not (st ->> 'ok')::boolean then
+    -- RC429: refused only by the one-minute guard, so the same photo can be
+    -- sent again shortly. Everything else stays a final refusal (P0001).
+    if (st ->> 'live')::boolean and (st ->> 'cooldown_left_s')::int > 0 then
+      raise exception '%', st ->> 'why' using errcode = 'RC429';
+    end if;
     raise exception '%', st ->> 'why' using errcode = 'P0001';
   end if;
 
